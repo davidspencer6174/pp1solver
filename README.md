@@ -35,7 +35,7 @@ The input positions are 39x39 with 12 layers. Each position has the character ce
 Layers 0-5 encode the position: unmovable blocks, movable blocks, character, winspace, empty squares. Layer 5 has a 1 wherever the character can reach without using a push. Layers 6-10 represent locations at which the character can make a push as the next action in the directions up, right, down, and left respectively; the values are -n where n is the number of 
 steps required to make the push. Layer 10 has a nonzero value if an exit can be reached at the location; its value is the maximum of layers 6-10 if it is covered by a movable and is -n if it is not covered by a movable and it takes n steps to reach the exit. Layer 11 is the sum over all previous Layer 5's, to give some notion of history (ideally, this will encourage exploration of new areas).
 
-The output targets are one-hot vectors of length 39\*39\*4, to account for 4 possible directions of pushes in each of 39\*39 locations. A winspace entry uncovered by a movable is encoded in the direction in which the step occurs in the training data. (There is a discrepancy with this in the append_square method of PushPosition. I think this is minor, but I plan on fixing it soon.) 
+The output targets are one-hot vectors of length 39\*39\*4, to account for 4 possible directions of pushes in each of 39\*39 locations. A winspace entry not covered by a movable is encoded in the direction in which the step occurs in the training data.
 
 The network at present is very simple: two convolutional layers and a dense layer, with dropout after each convolutional layer. The dataset is fairly small, so it's not clear whether performance can get much better.
 

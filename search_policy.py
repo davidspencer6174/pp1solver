@@ -87,7 +87,10 @@ while positions_checked < positions_to_check:
     predictions = model.predict(querying)
     for i in range(len(old_positions)):
         # Escape if finding a better solution is hopeless
-        if -old_positions[i].moves_penalty > shortest_soln_length - 1:
+        exit_loc = old_positions[i].exit_loc
+        char_loc = old_positions[i].char_loc
+        manhat = abs(exit_loc[0]-char_loc[0]) + abs(exit_loc[1]-char_loc[1])
+        if -old_positions[i].moves_penalty + manhat > shortest_soln_length:
             continue
         # Update depth statistic (for user to see)
         if -old_positions[i].moves_penalty > deepest_explored:

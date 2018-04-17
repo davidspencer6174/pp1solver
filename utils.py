@@ -47,6 +47,8 @@ class PushPosition:
             for y in range(self.size):
                 if arr[x, y, 2] == 1:
                     self.char_loc = [x, y]
+                if arr[x, y, 3] == 1:
+                    self.exit_loc = [x, y]
         # Clear the extra layers
         self.arr[:,:,5:] = np.zeros((self.size, self.size, num_layers-5))
         self.moves_penalty = 0
@@ -84,7 +86,7 @@ class PushPosition:
             for square in squares:
                 for move in range(4):
                     self.append_square(new_squares, square,
-                                       vecs[move], number_moves)
+                                       vecs[move], move, number_moves)
             squares = new_squares
         self.arr[:,:,11] += self.arr[:,:,5]
         
@@ -100,7 +102,7 @@ class PushPosition:
                 print("Illegal move")
             return ILLEGAL
         vecs = [[-1, 0], [0, 1], [1, 0], [0, -1]]
-        self.moves.append([x, y, direction])  # Tracks moves pushwise
+        self.moves.append(np.array([x, y, direction]))  # Tracks moves pushwise
         # Won without pushing
         if self.is_win(x, y) and not self.is_movable(x, y):
             self.moves_penalty += self.arr[x, y, 10]
@@ -162,7 +164,7 @@ class PushPosition:
         return True
         
                     
-    def append_square(self, new_squares, square, vec, num_moves):
+    def append_square(self, new_squares, square, vec, move, num_moves):
         """
         Only for internal use.
         Checks whether the square can be reached.
@@ -186,24 +188,18 @@ class PushPosition:
         # Winspace
         if self.is_win(x, y) and self.is_empty(x, y):
             # Already entered winspace at least as quickly
-            if self.arr[x, y, 6] != 0:
+            if np.sum(self.arr[x, y, 6:10]) != 0:
                 return
             # Newly entering winspace and valid to enter
             # No associated orientation.  Also update plane 10.
-            self.arr[x, y, 6:11] = -num_moves
+            self.arr[x, y, move+6] = -num_moves
+            self.arr[x, y, 10] = -num_moves
             return
         # The only remaining legal case is a pushable movable.
         if not self.in_bounds(x+vec[0], y+vec[1]):
             return
         if self.is_movable(x, y) and self.is_empty(x+vec[0], y+vec[1]):
-            if vec[0] == -1:
-                self.arr[x, y, 6] = -num_moves
-            if vec[1] == 1:
-                self.arr[x, y, 7] = -num_moves
-            if vec[0] == 1:
-                self.arr[x, y, 8] = -num_moves
-            if vec[1] == -1:
-                self.arr[x, y, 9] = -num_moves
+            self.arr[x, y, move+6] = -num_moves
             # Now account for possible win
             # It may be possible to push from multiple directions.
             # We want the shorter one, so take the max.
@@ -242,8 +238,8 @@ def append_level_data(file_string, data_x, data_y):
     vecs = [[-1, 0], [0, 1], [1, 0], [0, -1]]
     push_pos = PushPosition(arr)
     x_rotations(centered(copy.deepcopy(push_pos.arr),
-                         char_loc[0], char_loc[1])
-                , data_x)
+                         char_loc[0], char_loc[1]),
+                data_x)
     prev_char_x, prev_char_y = push_pos.char_loc
     for step in steps:
         vec = vecs[step]
