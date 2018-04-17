@@ -118,10 +118,10 @@ while not done:
                 
             if event.key == pg.K_r:  # R to restart
                 steps = []
-                p = utils.import_level(rawpath, level_name)
+                p, width, height = utils.import_raw_level(level_name, rawpath)
             if event.key == pg.K_u:  # U to undo
                 steps = steps[:-1]
-                p = utils.import_level(rawpath, level_name)
+                p, width, height = utils.import_raw_level(level_name, rawpath)
                 for i in steps:
                     p.move_in_direction(i)
             if event.key == pg.K_s:  # S to save data
