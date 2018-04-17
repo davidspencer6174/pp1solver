@@ -14,13 +14,13 @@ from keras import regularizers
 
 import matplotlib.pylab as plt
 import utils
-import numpy as np
 
 # Option to either start training from scratch or
 # load network and keep training.
 initializing = True
 
 inpath = "SolvedLevels/"
+
 
 levels = ["Sandstorm", "Dividers", "AllLockedUp", "ClosetSpace",
           "LeakInTheRoof", "2112GrandFinale", "WetSalmon", "RushingRiver",
@@ -35,16 +35,17 @@ levels = ["Sandstorm", "Dividers", "AllLockedUp", "ClosetSpace",
           "DoubleConfusion", "Pomeg", "Watmel", "Aidomok", "Cuchulainn",
           "MaputoExpress", "Hondew", "GossipCache", "RottenCore",
           "IMadeThisLevelDuringSchool", "MalteseFalcon", "Serenity",
-          "Contentment", "TinMan", "Forever", "Superlock",
+          "Contentment", "TinMan", "Forever", "Superlock", "LOLevel",
           "BurnDownTheMission", "10by10", "Quickie", "YouMayBeRight", "Boo",
-          "Misdirection", "NigerianWeatherForecast", "Brain", "Equality",
-          "IndustrialBell", "OriginofSymmetry", "Puncture", "RabbitHole",
-          "RoundtheBend", "StuckZipper", "Truancy", "TidalWave", "Mysterioso",
-          "Enclosure", "Octopussy", "Checkmate", "Vortex", "TTotal",
-          "SmallIntestines", "TrapDoor", "LinktoPast"]
+          "Misdirection", "NigerianWeatherForecast"]
 test_levels = ["K2xlgames", "Crazystylie", "LongWayHome", "Tetris",
                "AllBoxedUp", "TrickQuestion", "Corner2Corner", "HouseofGod",
-               "RussianDoll", "LOLevel", "Stars"]
+               "RussianDoll", "Stars", "Mysterioso", "Brain", "Equality",
+               "IndustrialBell", "OriginofSymmetry", "Puncture", "RabbitHole",
+               "RoundtheBend", "StuckZipper", "Truancy", "TidalWave",
+               "Enclosure", "Octopussy", "Checkmate", "Vortex", "TTotal",
+               "SmallIntestines", "TrapDoor", "LinktoPast", "CrossEyed"]
+
 
 # Set up training and test data.  Inputs are positions,
 # outputs are (x,y,direction) tuples, representating
@@ -76,9 +77,13 @@ if initializing:
     #model.add(Dropout(dconst, input_shape = input_shape))
     model.add(Conv2D(64, (3, 3), activation='relu', input_shape = input_shape))
     model.add(Dropout(dconst))
-    #model.add(MaxPooling2D())
+    model.add(MaxPooling2D())
     model.add(Conv2D(32, (3, 3), activation='relu'))
     model.add(Dropout(dconst))
+    #model.add(Conv2D(64, (3, 3), activation='relu'))
+    #model.add(Dropout(dconst))
+    #model.add(Conv2D(64, (3, 3), activation='relu'))
+    #model.add(Dropout(dconst))
     model.add(Flatten())
     model.add(Dense(100, activation='relu'))
     model.add(Dense(num_classes, activation='softmax'))
