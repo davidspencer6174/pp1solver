@@ -37,17 +37,6 @@ def import_altered_raw_level(level, raw_path):
             if i >= height or j >= width:
                 arr[i,j,0] = 1
                 arr[i,j,4] = 0
-            if i < height and j < width:
-                randomvalue=np.random.random_integers(1,100)
-				#5% to be block
-                if randomvalue<6:
-                    arr[i,j,0] = 1
-                    arr[i,j,4] = 0
-				#5% to immovable
-                elif randomvalue<11:
-                    arr[i,j,1] = 1
-                    arr[i,j,4] = 0		
-				#90% to remain empty
 
     for item in level[1:]:
         randomvalue=np.random.random_integers(1,100)

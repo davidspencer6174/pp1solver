@@ -1,0 +1,1 @@
+size:10,40,6,8 movable:0,0 movable:0,2 movable:0,4 char:1,1 movable:1,2 movable:1,4 movable:1,6 movable:2,1 movable:2,2 movable:2,3 movable:2,6 movable:3,2 movable:3,4 movable:3,5 movable:3,7 movable:4,1 movable:4,2 movable:4,5 movable:4,6 movable:4,7 movable:5,2 block:5,4 winspace:5,5
