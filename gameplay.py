@@ -22,6 +22,7 @@ import utils as utils
 
 import numpy as np
 
+import os
 #**********************************
 #Change the folder names here
 rawpath = "RawLevels/"
@@ -68,17 +69,29 @@ import sys
 
 import pygame as pg
 
-level_name = sys.argv[1]
-print(level_name)
 
 white = (255, 255, 255)
 black = (0, 0, 0)
 yellow = (255, 255, 0)
 grey = (128, 128, 128)
 blue = (0, 0, 255)
+levels=os.listdir(path='RawLevels')
 
-done = False
-
+done = True
+print('Which level would you like to play? \n(hit enter for random level) \n(hit 1 for list of levels)')
+level_name=str(input())
+while done == True:
+	if level_name=='1':
+		for i in levels:
+			print(i[:-4])	
+		print('Which level would you like to play? \n(hit enter for random level) \n(hit 1 for list of levels)')
+		level_name=str(input())
+	elif level_name+'.txt' not in levels:
+		level_name=levels[np.random.random_integers(0,len(levels)-1)][:-4]
+		done = False
+	else:
+		done = False
+print('Playing ' + level_name)
 p, width, height = utils.import_raw_level(level_name, rawpath)
 steps = []
 
