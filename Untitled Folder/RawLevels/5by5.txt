@@ -1,1 +1,0 @@
-size:10,40,5,5 char:0,0 block:1,1 block:1,4 movable:2,0 movable:2,1 movable:2,3 block:3,2 movable:3,3 winspace:3,4 movable:4,3

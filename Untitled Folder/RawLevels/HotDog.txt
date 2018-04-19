@@ -1,1 +1,0 @@
-size:10,40,19,5 char:0,2 block:3,2 block:4,1 block:4,3 block:6,1 block:6,3 block:6,4 block:7,2 block:9,0 block:9,1 block:9,3 block:10,2 block:11,4 block:13,2 block:14,0 block:14,3 block:16,2 block:16,3 block:16,4 block:17,1 block:17,2 winspace:17,3
