@@ -2,7 +2,7 @@
 import pickle
 import copy
 import random
-from utils import PushPosition
+from utils import PushPosition, import_raw_level
 import numpy as np
 import os
 import sys
@@ -20,61 +20,58 @@ rawpath = "RawLevels/"
 outpath = "AlteredLevels/"
 steps=[]
 
-#Altered import_raw_level function. Can change weights to change how it's altered.
-def import_altered_raw_level(level, raw_path):
-    """
-    Imports a level given the level code in the official PP2 format.
-    Pads the level with unmovables to make it 20x20.
-    """
-    f = open(raw_path+level+".txt", "r")
-    level = f.readline().split()  
-    metadata = level[0].split(",")
-    width, height = int(metadata[2]), int(metadata[3])
-    arr = np.zeros((20, 20, 10))
-    arr[:,:,4] = 1
-    for i in range(0, 20):
-        for j in range(0, 20):
-            if i >= height or j >= width:
-                arr[i,j,0] = 1
-                arr[i,j,4] = 0
-            if i < height and j < width:
-                randomvalue=np.random.random_integers(1,100)
-				#5% to be block
-                if randomvalue<6:
-                    arr[i,j,0] = 1
-                    arr[i,j,4] = 0
-				#5% to immovable
-                elif randomvalue<11:
-                    arr[i,j,1] = 1
-                    arr[i,j,4] = 0		
-				#90% to remain empty 
+expected_changes = np.array([[0, 5, 8],
+                             [5, 0, 8],
+                             [5, 5, 0]])
 
-    for item in level[1:]:
-        randomvalue=np.random.random_integers(1,100)
-        vals = item.split(":")[1].split(",")
-        if item[0] == "w":
-            arr[int(vals[1]),int(vals[0]),3] = 1
-        if item[0] == "c":
-            arr[int(vals[1]),int(vals[0]),2] = 1
-		#85% for the immoveable/moveable block to remain the same
-        if randomvalue>15:
-            if item[0] == "b":
-                arr[int(vals[1]),int(vals[0]),0] = 1
-                arr[int(vals[1]),int(vals[0]),4] = 0
-            if item[0] == "m":
-                arr[int(vals[1]),int(vals[0]),1] = 1
-                arr[int(vals[1]),int(vals[0]),4] = 0
-		#10% for the immoveable/moveable block to switch types
-        if randomvalue>=5 and randomvalue<15:
-            if item[0] == "b":
-                arr[int(vals[1]),int(vals[0]),1] = 1
-                arr[int(vals[1]),int(vals[0]),4] = 0
-            if item[0] == "m":
-                arr[int(vals[1]),int(vals[0]),0] = 1
-                arr[int(vals[1]),int(vals[0]),4] = 0
-		#5% for the immoveable/moveable block to become blank space
-    p = PushPosition(arr)
-    return p, width, height
+def import_altered_raw_level(level, raw_path, change):
+    """
+    Randomly perturbs a level so that the user can decide whether
+    it's legal.  Will be used as input for the solvability net.
+    The expected changes matrix gives the expected number
+    of times that (unmovable, movable, empty) should be changed
+    into (unmovable, movable, empty).
+    The character spot is never changed.  If the winspace spot
+    attempts to change to an unmovable, the change will be discarded.
+    """
+    p, width, height = import_raw_level(level, raw_path)
+    arr = copy.deepcopy(p.arr)
+    unmovables = max(np.sum(arr[0:height,0:width,0]), 1)
+    movables = max(np.sum(arr[0:height,0:width,1]), 1)
+    empties = max(np.sum(arr[0:height,0:width,4]), 1)
+    print(unmovables)
+    print(movables)
+    print(empties)
+    tr_mat = np.array([[0, change[0, 1]/unmovables, change[0, 2]/unmovables],
+                       [change[1, 0]/movables, 0, change[1, 2]/movables],
+                       [change[2, 0]/empties, change[2, 1]/empties, 0]])
+    for row in range(3):
+        tr_mat[row, row] = 1 - np.sum(tr_mat[row,:])
+    for i in range(height):
+        for j in range(width):
+            r = random.random()
+            if p.is_unmovable(i, j):
+                if r > tr_mat[0, 0] and r <= tr_mat[0, 0] + tr_mat[0, 1]:
+                    arr[i, j, 0] = 0
+                    arr[i, j, 1] = 1
+                if r > tr_mat[0, 0] + tr_mat[1, 1]:
+                    arr[i, j, 0] = 0
+                    arr[i, j, 4] = 1
+            if p.is_movable(i, j):
+                if r <= tr_mat[1, 0] and not p.is_win(i, j):
+                    arr[i, j, 1] = 0
+                    arr[i, j, 0] = 1
+                if r > tr_mat[1, 0] + tr_mat[1, 1]:
+                    arr[i, j, 1] = 0
+                    arr[i, j, 4] = 1
+            if p.is_empty(i, j):
+                if r <= tr_mat[2, 0] and not p.is_win(i, j):
+                    arr[i, j, 4] = 0
+                    arr[i, j, 0] = 1
+                if r <= tr_mat[2, 0] + tr_mat[2, 1]:
+                    arr[i, j, 4] = 0
+                    arr[i, j, 1] = 1
+    return PushPosition(arr), width, height
 
 #Draw function from gameplay.py
 def draw(width, height, p, steps):    #draw the grid
@@ -141,12 +138,8 @@ except:
 
 #Displays altered levels
 for i in range(numoftimes):
-    p, width, height = import_altered_raw_level(level_name, rawpath)
-
-    original_arr = copy.deepcopy(p.arr)
-    original_arr[:,:,5:] = np.zeros((original_arr[:,:,5:].shape))
-    originalchar_loc = copy.deepcopy(p.char_loc) 
-
+    p, width, height = import_altered_raw_level(level_name, rawpath,
+                                                expected_changes)
 
     pg.init()
 
