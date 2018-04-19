@@ -47,7 +47,7 @@ def import_altered_raw_level(level, raw_path):
                 elif randomvalue<11:
                     arr[i,j,1] = 1
                     arr[i,j,4] = 0		
-				#90% to remain empty
+				#90% to remain empty 
 
     for item in level[1:]:
         randomvalue=np.random.random_integers(1,100)
