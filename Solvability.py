@@ -135,9 +135,13 @@ try:
         responses = pickle.load(f)
 except:
     responses=[]
+    
+nos = 0
+yeses = 0
 
+i = 0
 #Displays altered levels
-for i in range(numoftimes):
+while i < numoftimes:
     p, width, height = import_altered_raw_level(level_name, rawpath,
                                                 expected_changes)
 
@@ -155,10 +159,20 @@ for i in range(numoftimes):
                 done=True
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_y:  # Y for yes
+                    if yeses > nos + 3:
+                        done = True
+                        i -= 1
+                        break
+                    yeses += 1
                     responses.append(p.arr)
                     responses.append('y')
                     done=True
                 if event.key == pg.K_n:  # N for no
+                    if nos > yeses + 3:
+                        done = True
+                        i -= 1
+                        break
+                    nos += 1
                     responses.append(p.arr)
                     responses.append('n')
                     done=True
@@ -168,6 +182,7 @@ for i in range(numoftimes):
                     done=True
         draw(width, height, p, steps)  
     pg.quit()
+    i += 1
     done=False
 with open(outpath+level_name+' altered', 'wb') as f:
     pickle.dump(responses, f)  
