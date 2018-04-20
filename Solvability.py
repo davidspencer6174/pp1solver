@@ -39,9 +39,6 @@ def import_altered_raw_level(level, raw_path, change):
     unmovables = max(np.sum(arr[0:height,0:width,0]), 1)
     movables = max(np.sum(arr[0:height,0:width,1]), 1)
     empties = max(np.sum(arr[0:height,0:width,4]), 1)
-    print(unmovables)
-    print(movables)
-    print(empties)
     tr_mat = np.array([[0, change[0, 1]/unmovables, change[0, 2]/unmovables],
                        [change[1, 0]/movables, 0, change[1, 2]/movables],
                        [change[2, 0]/empties, change[2, 1]/empties, 0]])
@@ -177,13 +174,12 @@ while i < numoftimes:
                     responses.append('n')
                     done=True
                 if event.key == pg.K_m:  # M for maybe
-                    responses.append(p.arr)
-                    responses.append('n')
+                    i -= 1
                     done=True
         draw(width, height, p, steps)  
     pg.quit()
     i += 1
     done=False
-with open(outpath+level_name+' altered', 'wb') as f:
+with open(outpath+level_name+'_altered', 'wb') as f:
     pickle.dump(responses, f)  
 
