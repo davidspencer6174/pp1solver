@@ -54,7 +54,7 @@ def import_altered_raw_level(level, raw_path, change):
                 if r > tr_mat[0, 0] and r <= tr_mat[0, 0] + tr_mat[0, 1]:
                     arr[i, j, 0] = 0
                     arr[i, j, 1] = 1
-                if r > tr_mat[0, 0] + tr_mat[1, 1]:
+                if r > tr_mat[0, 0] + tr_mat[0, 1]:
                     arr[i, j, 0] = 0
                     arr[i, j, 4] = 1
             if p.is_movable(i, j):
