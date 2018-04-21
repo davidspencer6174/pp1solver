@@ -20,9 +20,13 @@ rawpath = "RawLevels/"
 outpath = "AlteredLevels/"
 steps=[]
 
-expected_changes = np.array([[0, 5, 8],
-                             [5, 0, 8],
-                             [5, 5, 0]])
+expect_changes = np.array([[0, 10.0, 10.0],
+                           [10.0, 0, 10.0],
+                           [10.0, 10.0, 0]])
+modify_for_no = np.array([[0,1,1],
+                          [-1,0,1],
+                          [-1,-1,0]])
+modify_for_yes = -modify_for_no
 
 def import_altered_raw_level(level, raw_path, change):
     """
@@ -30,11 +34,12 @@ def import_altered_raw_level(level, raw_path, change):
     it's legal.  Will be used as input for the solvability net.
     The expected changes matrix gives the expected number
     of times that (unmovable, movable, empty) should be changed
-    into (unmovable, movable, empty).
+    into (unmovable, movable, empty) if the level has 400 squares.
     The character spot is never changed.  If the winspace spot
     attempts to change to an unmovable, the change will be discarded.
     """
     p, width, height = import_raw_level(level, raw_path)
+    change *= width*height/400  # Normalize based on level size
     arr = copy.deepcopy(p.arr)
     unmovables = max(np.sum(arr[0:height,0:width,0]), 1)
     movables = max(np.sum(arr[0:height,0:width,1]), 1)
@@ -140,7 +145,7 @@ i = 0
 #Displays altered levels
 while i < numoftimes:
     p, width, height = import_altered_raw_level(level_name, rawpath,
-                                                expected_changes)
+                                                copy.deepcopy(expect_changes))
 
     pg.init()
 
@@ -156,6 +161,7 @@ while i < numoftimes:
                 done=True
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_y:  # Y for yes
+                    expect_changes += modify_for_yes
                     if yeses > nos + 3:
                         done = True
                         i -= 1
@@ -165,6 +171,7 @@ while i < numoftimes:
                     responses.append('y')
                     done=True
                 if event.key == pg.K_n:  # N for no
+                    expect_changes += modify_for_no
                     if nos > yeses + 3:
                         done = True
                         i -= 1
