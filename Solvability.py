@@ -133,9 +133,10 @@ numoftimes=int(input())
 print('Yellow is the character, Blue is the goal')
 #Opens pickle of altered levels, creates new list if not created
 try:
-    with open(outpath+level_name+' altered') as f:
+    with open(outpath+level_name+'_altered' , 'rb' ) as f:
         responses = pickle.load(f)
-except:
+    print('continuing')
+except FileNotFoundError:
     responses=[]
     
 nos = 0
@@ -180,7 +181,28 @@ while i < numoftimes:
                     responses.append(p.arr)
                     responses.append('n')
                     done=True
-                if event.key == pg.K_m:  # M for maybe
+                if event.key == pg.K_c:  # C for Change Last Response
+                    if responses[-1]=='y':
+                        print('changed last response to no')
+                        responses[-1]='n'
+                    elif responses[-1]=='n':
+                        print('changed last response to yes')
+                        responses[-1]='y'
+				#Allow Movement
+                if event.key == pg.K_UP:
+                    if p.move_in_direction(0):
+                        steps.append(0)
+                if event.key == pg.K_RIGHT:
+                    if p.move_in_direction(1):
+                        steps.append(1)
+                if event.key == pg.K_DOWN:
+                    if p.move_in_direction(2):
+                        steps.append(2)
+                if event.key == pg.K_LEFT:
+                    if p.move_in_direction(3):
+                        steps.append(3)
+				# M for maybe
+                if event.key == pg.K_m: 
                     i -= 1
                     done=True
         draw(width, height, p, steps)  
@@ -189,4 +211,3 @@ while i < numoftimes:
     done=False
 with open(outpath+level_name+'_altered', 'wb') as f:
     pickle.dump(responses, f)  
-
