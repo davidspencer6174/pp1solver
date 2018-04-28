@@ -127,8 +127,8 @@ plt.ylabel('Accuracy')
 plt.show()
 
 model_json = model.to_json()
-with open("networks/policy.json", "w") as json_file:
+with open("networks/solvability_policy.json", "w") as json_file:
     json_file.write(model_json)
     
-model.save_weights("networks/policy.h5")
+model.save_weights("networks/solvability_policy.h5")
 print("Saved model to disk")
