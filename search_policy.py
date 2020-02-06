@@ -1,9 +1,10 @@
 import copy
 import tensorflow as tf
 import utils
-from keras.models import model_from_json
+from tensorflow.keras.models import model_from_json
 import numpy as np
 from heapq import heappush, heappop
+from itertools import count
 from time import clock
 
 # A first attempt at a search.
@@ -13,6 +14,8 @@ from time import clock
 rawpath = "RawLevels/"
 netpath = "networks/policy.json"
 weights = "networks/policy.h5"
+
+tiebreaker = count()
 
 #level_name = "9by8"
 #level_name = "LOLevel"
@@ -25,8 +28,9 @@ original_char_loc = copy.deepcopy(full_init_position.char_loc)
 size = full_init_position.size
 
 # The first member in the tuple is the priority.
-# The second member represents the position.
-seed_position = (0, [])
+# The second member is a tiebreaker.
+# The third member represents the position.
+seed_position = (0, next(tiebreaker), [])
 
 positions = []  # This will be used as a heapq of positions.
 # For the purpose of memory efficiency, the positions are
@@ -75,7 +79,7 @@ while positions_checked < positions_to_check:
             print("Current penalty: {}".format(position[0]))
         # Now get from the original position to the current position
         old_positions.append(utils.get_position(copy.deepcopy(original_arr), 
-                                                position[1]))
+                                                position[2]))
         # Center the character and add the array to the net input
         querying.append(utils.centered(old_positions[-1].arr,
                                        old_positions[-1].char_loc[0],
@@ -126,7 +130,9 @@ while positions_checked < positions_to_check:
                 new_priority = (old_x_priorities[i]
                                 + .05*move_diff
                                 - np.log(predictions[i][move]*num_legal**.75))
-                heappush(positions, (new_priority, position_copy.moves))
+                #print(new_priority)
+                #print(position_copy.moves)
+                heappush(positions, (new_priority, next(tiebreaker), position_copy.moves))
                 position_copy = copy.deepcopy(old_positions[i])
                 
 print("Shortest solution found has  {} moves".format(shortest_soln_length))

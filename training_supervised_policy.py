@@ -6,11 +6,11 @@ Created on Thu Apr 12 23:28:52 2018
 """
 
 from __future__ import print_function
-import keras
-from keras.layers import Dense, Flatten
-from keras.layers import Conv2D, MaxPooling2D, Dropout
-from keras.models import Sequential, model_from_json
-from keras import regularizers
+import tensorflow.keras
+from tensorflow.keras.layers import Dense, Flatten
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Dropout
+from tensorflow.keras.models import Sequential, model_from_json
+from tensorflow.keras import regularizers
 
 import matplotlib.pylab as plt
 import utils
@@ -95,11 +95,11 @@ else:
     model.load_weights("networks/policy.h5")
     print("Loaded model from disk")
     
-model.compile(loss=keras.losses.categorical_crossentropy,
-            optimizer = keras.optimizers.Adam(),
+model.compile(loss=tensorflow.keras.losses.categorical_crossentropy,
+            optimizer = tensorflow.keras.optimizers.Adam(),
             metrics=['accuracy'])
 
-class AccuracyHistory(keras.callbacks.Callback):
+class AccuracyHistory(tensorflow.keras.callbacks.Callback):
     def on_train_begin(self, logs={}):
         self.acc = []
 
@@ -118,8 +118,8 @@ track = model.fit(x_train, y_train,
 score = model.evaluate(x_test, y_test, verbose=0)
 print('Test loss:', score[0])
 print('Test accuracy:', score[1])
-plt.plot(range(1, epochs+1), track.history['val_acc'])
-plt.plot(range(1, epochs+1), track.history['acc'])
+plt.plot(range(1, epochs+1), track.history['val_accuracy'])
+plt.plot(range(1, epochs+1), track.history['accuracy'])
 plt.xlabel('Epochs')
 plt.ylabel('Accuracy')
 plt.show()
