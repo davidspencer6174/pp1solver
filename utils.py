@@ -256,6 +256,7 @@ def append_level_data(file_string, data_x, data_y, shifts = False):
         x_shifts(copy.deepcopy(push_pos.arr), data_x,
                  rng_seq, rng_indices, shifts = shifts)
     prev_char_x, prev_char_y = push_pos.char_loc
+    before_augmenting = 0
     for (ind, step) in enumerate(steps):
         vec = vecs[step]
         new_char_x = push_pos.char_loc[0]+vec[0]
@@ -275,6 +276,7 @@ def append_level_data(file_string, data_x, data_y, shifts = False):
                 x_rotations(centered(copy.deepcopy(push_pos.arr), new_char_x,
                                                    new_char_y), data_x)
             else:
+                before_augmenting = len(data_x)
                 x_shifts(copy.deepcopy(push_pos.arr), data_x,
                          rng_seq, rng_indices, shifts = shifts)
             prev_char_x, prev_char_y = new_char_x, new_char_y
@@ -478,12 +480,10 @@ def set_up_position(pass_in, size_x, size_y): #setting up a position given an ar
 
     
 def shuffle_in_unison(l1, l2):
-    c = list(zip(l1, l2))
-    random.shuffle(c)
-    out1, out2 = zip(*c)
-    out1 = list(out1)
-    out2 = list(out2)
-    return out1, out2
+    indices = np.arange(l1.shape[0])
+    np.random.shuffle(indices)
+    l1 = l1[indices]
+    l2 = l2[indices]
 
 #testing code    
 #data_x, data_y = load_levels(["Sandstorm"], "SolvedLevels\\")
