@@ -9,6 +9,8 @@ NORMAL = 1
 PUSH = 2
 WIN = 10000
 
+CENTERED = False
+
 num_layers = 12
 size = 20
 
@@ -129,8 +131,11 @@ class PushPosition:
         The move is encoded using three variables: x position,
         y position, and the direction of the push.
         """
-        x = move//((self.size*2-1)*4) + self.char_loc[0] - (size-1)
-        y = (move%((self.size*2-1)*4))//4 + self.char_loc[1] - (size-1)
+        x = move//(self.size*4)
+        y = move%(self.size*4)//4
+        if CENTERED:
+            x = move//((self.size*2-1)*4) + self.char_loc[0] - (size-1)
+            y = (move%((self.size*2-1)*4))//4 + self.char_loc[1] - (size-1)
         direction = move%4
         return self.make_move(x, y, direction)
 
@@ -227,39 +232,68 @@ class PushPosition:
         return out
 
         
-def append_level_data(file_string, data_x, data_y):
+def append_level_data(file_string, data_x, data_y, shifts = False):
     f = open(file_string, "rb")
     lvl_data = pickle.load(f)
     f.close()
+    
+    #Too much data to hold in memory. Only keep some, but make sure
+    #to keep the same x and y data points.
+    rng_seq = np.random.rand(20000)
+    rng_indices = [0, 0]
+    
     arr, char_loc, steps = np.array(lvl_data[0]), lvl_data[1], lvl_data[2]
     # This data is stepwise (since it was produced by user gameplay).
     # Need to convert it to pushwise data.
     size = arr.shape[0]
     vecs = [[-1, 0], [0, 1], [1, 0], [0, -1]]
     push_pos = PushPosition(arr)
-    x_rotations(centered(copy.deepcopy(push_pos.arr),
-                         char_loc[0], char_loc[1]),
-                data_x)
+    if CENTERED:
+        x_rotations(centered(copy.deepcopy(push_pos.arr),
+                             char_loc[0], char_loc[1]),
+                    data_x)
+    else:
+        x_shifts(copy.deepcopy(push_pos.arr), data_x,
+                 rng_seq, rng_indices, shifts = shifts)
     prev_char_x, prev_char_y = push_pos.char_loc
-    for step in steps:
+    for (ind, step) in enumerate(steps):
         vec = vecs[step]
         new_char_x = push_pos.char_loc[0]+vec[0]
         new_char_y = push_pos.char_loc[1]+vec[1]
         if (push_pos.is_movable(new_char_x, new_char_y)
             or push_pos.is_win(new_char_x, new_char_y)):
-            y_rotations(new_char_x+size-1-prev_char_x,
-                        new_char_y+size-1-prev_char_y,
-                        step, data_y)
+            if CENTERED:
+                y_rotations(new_char_x+size-1-prev_char_x,
+                            new_char_y+size-1-prev_char_y,
+                            step, data_y)
+            else:
+                y_shifts(new_char_x, new_char_y, step, data_y, push_pos.arr,
+                         rng_seq, rng_indices, shifts = shifts)
             if not push_pos.move_in_direction(step):
                 print("Level did not load properly.")
-            x_rotations(centered(copy.deepcopy(push_pos.arr), new_char_x,
-                                               new_char_y), data_x)
+            if CENTERED:
+                x_rotations(centered(copy.deepcopy(push_pos.arr), new_char_x,
+                                                   new_char_y), data_x)
+            else:
+                x_shifts(copy.deepcopy(push_pos.arr), data_x,
+                         rng_seq, rng_indices, shifts = shifts)
             prev_char_x, prev_char_y = new_char_x, new_char_y
         else:
             if not push_pos.move_in_direction(step):
                 print("Level did not load properly.")
-    # Have to get rid of the position that appears after the win
-    del data_x[-8:]
+    if CENTERED:
+        del data_x[-8:]
+    else:
+        del data_x[before_augmenting:]
+    after_appending_length = len(data_x)
+    if shifts:
+        for i in range(after_appending_length - before_appending_length):
+            if random.random() > 1/(after_appending_length-before_appending_length)**.3:
+                del data_x[after_appending_length - i - 1]
+                del data_y[after_appending_length - i - 1]
+    print(len(data_x))
+    print(len(data_y))
+        
     #del data_x[-1:]
     
     
@@ -279,9 +313,19 @@ def centered(arr, char_x, char_y):
             
 def x_rotations(arr, data_x):
     """
-    Computes all rotations of an input board.
+    Computes all rotations of an input board and appends
+    them to data_x.
     """
     cop_arr = copy.deepcopy(arr)
+    #Because we pad with zeros in a convolution, we want to pad with
+    #unmovables.
+    #Therefore, we make 0 in the unmovables layer represent an
+    #unmovable.
+    cop_arr[:,:,0] = 1 - cop_arr[:,:,0]
+    #Also, although this should be learnable, we increase the value
+    #of the nonzero entry in the character array to emphasize the
+    #importance of the character.
+    cop_arr[:,:,2] *= 100
     for i in range(4):
         data_x.append(copy.deepcopy(cop_arr))
         cop_arr = np.rot90(cop_arr)  # Rotate
@@ -295,40 +339,78 @@ def x_rotations(arr, data_x):
         cop_arr[:,:,6:10] = np.roll(cop_arr[:,:,6:10], -1, axis=2)
     cop_arr[:,:,6:10] = np.flip(cop_arr[:,:,6:10], 2)
     cop_arr = cop_arr.swapaxes(0, 1)
+    
+def x_shifts(arr, data_x, rng_seq, rng_indices, shifts = False):
+    """
+    Computes all shifts of an input board and all rotations of those
+    shifts and appends them to data_x.
+    """
+    width, height = tuple(coords.max() for coords in np.nonzero(1 - arr[:,:,0]))
+    if not shifts:
+        width = 19
+        height = 19
+    for shift_x in range(20 - width):
+        for shift_y in range(20 - height):
+            shifted_arr_x = np.roll(arr, shift_x, axis = 0)
+            shifted_arr_both = np.roll(shifted_arr_x, shift_y, axis = 1)
+            if rng_seq[rng_indices[0]] < 10/((20-width)*(20-height)):
+                x_rotations(copy.deepcopy(shifted_arr_both), data_x)
+            rng_indices[0] += 1
 
 
 def rotate_once(x, y, direction):
     global size
-    return (2*size-1)-y-1, x, (direction-1) % 4
+    if CENTERED:
+        return (2*size-1)-y-1, x, (direction-1) % 4
+    return size - y - 1, x, (direction-1) % 4
 
         
 def y_rotations(x, y, direction, data_y):
     """
-    Translates move numbers to match the rotations of the
-    input board.
+    Transforms move numbers to match the rotations of the
+    input board and appends them to data_y.
     """
     # DOUBLE CHECK THIS
     global size
-    dsize = 2*size-1
+    input_size = size
+    if CENTERED:
+        input_size = 2*size-1
     for i in range(4):
-        data_y.append(onehot(dsize*dsize*4, 4*dsize*x + 4*y + direction))
+        data_y.append(onehot(input_size*input_size*4,
+                             4*input_size*x + 4*y + direction))
         x, y, direction = rotate_once(x, y, direction)
     direction = 3 - direction
     x, y = y, x
     for i in range(4):
-        data_y.append(onehot(dsize*dsize*4, 4*dsize*x + 4*y + direction))
+        data_y.append(onehot(input_size*input_size*4,
+                             4*input_size*x + 4*y + direction))
         x, y, direction = rotate_once(x, y, direction)
     x, y = y, x
     direction = 3 - direction
+    
+def y_shifts(move_x, move_y, direction, data_y, arr, rng_seq, rng_indices, shifts = False):
+    """
+    Transforms move numbers to match the shifts and rotations
+    of the input board and appends them to data_y.
+    """
+    width, height = tuple(coords.max() for coords in np.nonzero(1 - arr[:,:,0]))
+    if not shifts:
+        width = 19
+        height = 19
+    for shift_x in range(20 - width):
+        for shift_y in range(20 - height):
+            if rng_seq[rng_indices[1]] < 10/((20-width)*(20-height)):
+                y_rotations(move_x+shift_x, move_y+shift_y, direction, data_y)
+            rng_indices[1] += 1
 
                         
-def load_levels(levels, solved_path):
+def load_levels(levels, solved_path, shifts = False):
     """Makes data out of solved levels"""
     data_x = []
     data_y = []
     for level in levels:
         print(level)
-        append_level_data(solved_path+level, data_x, data_y)
+        append_level_data(solved_path+level, data_x, data_y, shifts = shifts)
     return np.array(data_x), np.array(data_y)
 
     

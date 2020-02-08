@@ -81,9 +81,14 @@ while positions_checked < positions_to_check:
         old_positions.append(utils.get_position(copy.deepcopy(original_arr), 
                                                 position[2]))
         # Center the character and add the array to the net input
-        querying.append(utils.centered(old_positions[-1].arr,
-                                       old_positions[-1].char_loc[0],
-                                       old_positions[-1].char_loc[1]))
+        if utils.CENTERED:
+            querying.append(utils.centered(old_positions[-1].arr,
+                                           old_positions[-1].char_loc[0],
+                                           old_positions[-1].char_loc[1]))
+        else:
+            querying.append(copy.deepcopy(old_positions[-1].arr))
+            querying[-1][:,:,0] = 1 - querying[-1][:,:,0]
+            querying[-1][:,:,2] = 100*querying[-1][:,:,2]
         old_x_priorities.append(position[0])
         positions_checked += 1
     querying = np.array(querying)
@@ -104,7 +109,10 @@ while positions_checked < positions_to_check:
         position_copy = copy.deepcopy(old_positions[i])
         oldmoves_penalty = position_copy.moves_penalty
         # Now try each possible move and add to the positions queue
-        for move in range(0, (2*size-1)*(2*size-1)*4):
+        max_move = size*size*4
+        if utils.CENTERED:
+            max_move = (2*size-1)*(2*size-1)*4
+        for move in range(0, max_move):
             move_result = position_copy.make_move_number(move)
             if move_result == -1:
                 continue
