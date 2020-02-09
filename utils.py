@@ -313,15 +313,7 @@ def x_rotations(arr, data_x):
     them to data_x.
     """
     cop_arr = copy.deepcopy(arr)
-    #Because we pad with zeros in a convolution, we want to pad with
-    #unmovables.
-    #Therefore, we make 0 in the unmovables layer represent an
-    #unmovable.
-    cop_arr[:,:,0] = 1 - cop_arr[:,:,0]
-    #Also, although this should be learnable, we increase the value
-    #of the nonzero entry in the character array to emphasize the
-    #importance of the character.
-    cop_arr[:,:,2] *= 100
+    position_transform(cop_arr)
     for i in range(4):
         data_x.append(copy.deepcopy(cop_arr))
         cop_arr = np.rot90(cop_arr)  # Rotate
@@ -478,6 +470,25 @@ def shuffle_in_unison(l1, l2):
     np.random.shuffle(indices)
     l1 = l1[indices]
     l2 = l2[indices]
+    
+#The PushPosition class maintains 12 planes by default, but
+#it may be that we don't want to put all of them into the
+#neural network, or that we want to modify them in some
+#way. This performs that task.
+def position_transform(arr):
+    
+    #Because we pad with zeros in a convolution, we want to pad with
+    #unmovables.
+    #Therefore, we make 0 in the unmovables layer represent an
+    #unmovable.
+    arr[:,:,0] = 1 - arr[:,:,0]
+    #arr[:,:,2] *= 100
+    arr[:,:,5:12] *= 0
+    #arr[:,:,5] *= 0
+    #arr[:,:,10:12] *= 0
+    #arr[:,:,6:10] == np.sign(arr[:,:,6:10])
+    
+    
 
 #testing code    
 #data_x, data_y = load_levels(["Sandstorm"], "SolvedLevels\\")
