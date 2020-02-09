@@ -3,13 +3,7 @@ import copy
 import random
 
 import numpy as np
-
-ILLEGAL = -1
-NORMAL = 1
-PUSH = 2
-WIN = 10000
-
-CENTERED = False
+import constants
 
 num_layers = 12
 size = 20
@@ -102,17 +96,17 @@ class PushPosition:
         if (not self.in_bounds(x, y)) or self.arr[x, y, direction+6] == 0:
             if notifying_illegal:
                 print("Illegal move")
-            return ILLEGAL
+            return constants.ILLEGAL
         vecs = [[-1, 0], [0, 1], [1, 0], [0, -1]]
         self.moves.append(np.array([x, y, direction]))  # Tracks moves pushwise
         # Won without pushing
         if self.is_win(x, y) and not self.is_movable(x, y):
             self.moves_penalty += self.arr[x, y, 10]
-            return WIN  # Should not play more moves after this
+            return constants.WIN  # Should not play more moves after this
         self.moves_penalty += self.arr[x, y, direction+6]
         # Won with pushing
         if self.is_win(x, y):
-            return WIN
+            return constants.WIN
         # Three planes to update: character, movable, empty.
         self.arr[self.char_loc[0], self.char_loc[1], 2] = 0
         self.arr[x, y, 1] = 0
@@ -123,7 +117,7 @@ class PushPosition:
         self.char_loc = [x, y]
         # Maintain the possible pushes plane
         self.assign_pushes()
-        return PUSH
+        return constants.PUSH
         
     def make_move_number(self, move):
         """
@@ -133,7 +127,7 @@ class PushPosition:
         """
         x = move//(self.size*4)
         y = move%(self.size*4)//4
-        if CENTERED:
+        if constants.CENTERED:
             x = move//((self.size*2-1)*4) + self.char_loc[0] - (size-1)
             y = (move%((self.size*2-1)*4))//4 + self.char_loc[1] - (size-1)
         direction = move%4
@@ -248,7 +242,7 @@ def append_level_data(file_string, data_x, data_y, shifts = False):
     size = arr.shape[0]
     vecs = [[-1, 0], [0, 1], [1, 0], [0, -1]]
     push_pos = PushPosition(arr)
-    if CENTERED:
+    if constants.CENTERED:
         x_rotations(centered(copy.deepcopy(push_pos.arr),
                              char_loc[0], char_loc[1]),
                     data_x)
@@ -263,7 +257,7 @@ def append_level_data(file_string, data_x, data_y, shifts = False):
         new_char_y = push_pos.char_loc[1]+vec[1]
         if (push_pos.is_movable(new_char_x, new_char_y)
             or push_pos.is_win(new_char_x, new_char_y)):
-            if CENTERED:
+            if constants.CENTERED:
                 y_rotations(new_char_x+size-1-prev_char_x,
                             new_char_y+size-1-prev_char_y,
                             step, data_y)
@@ -272,7 +266,7 @@ def append_level_data(file_string, data_x, data_y, shifts = False):
                          rng_seq, rng_indices, shifts = shifts)
             if not push_pos.move_in_direction(step):
                 print("Level did not load properly.")
-            if CENTERED:
+            if constants.CENTERED:
                 x_rotations(centered(copy.deepcopy(push_pos.arr), new_char_x,
                                                    new_char_y), data_x)
             else:
@@ -283,7 +277,7 @@ def append_level_data(file_string, data_x, data_y, shifts = False):
         else:
             if not push_pos.move_in_direction(step):
                 print("Level did not load properly.")
-    if CENTERED:
+    if constants.CENTERED:
         del data_x[-8:]
     else:
         del data_x[before_augmenting:]
@@ -348,7 +342,7 @@ def x_shifts(arr, data_x, rng_seq, rng_indices, shifts = False):
 
 def rotate_once(x, y, direction):
     global size
-    if CENTERED:
+    if constants.CENTERED:
         return (2*size-1)-y-1, x, (direction-1) % 4
     return size - y - 1, x, (direction-1) % 4
 
@@ -361,7 +355,7 @@ def y_rotations(x, y, direction, data_y):
     # DOUBLE CHECK THIS
     global size
     input_size = size
-    if CENTERED:
+    if constants.CENTERED:
         input_size = 2*size-1
     for i in range(4):
         data_y.append(onehot(input_size*input_size*4,
@@ -483,15 +477,7 @@ def position_transform(arr):
     #unmovable.
     arr[:,:,0] = 1 - arr[:,:,0]
     #arr[:,:,2] *= 100
-    arr[:,:,5:12] *= 0
-    #arr[:,:,5] *= 0
-    #arr[:,:,10:12] *= 0
-    #arr[:,:,6:10] == np.sign(arr[:,:,6:10])
-    
-    
-
-#testing code    
-#data_x, data_y = load_levels(["Sandstorm"], "SolvedLevels\\")
-#ind = 1
-#print(PushPosition(data_x[ind]).prettystring())
-#print(np.argmax(data_y[ind]))
+    #arr[:,:,5:12] *= 0
+    arr[:,:,5] *= 0
+    arr[:,:,10:12] *= 0
+    arr[:,:,6:10] == np.sign(arr[:,:,6:10])

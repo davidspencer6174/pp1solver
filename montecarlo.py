@@ -2,7 +2,8 @@ import copy
 import numpy as np
 import utils
 
-def monte_carlo(init_position, model, num_simulations, batch_size, move_limit):
+def monte_carlo(init_position, model, num_simulations, batch_size, move_limit,
+                verbosity = 1):
     orig_arr = copy.deepcopy(init_position.arr)
     #Positions are stored as move sequences rather than
     #as full arrays, which are less memory efficient.
@@ -15,7 +16,8 @@ def monte_carlo(init_position, model, num_simulations, batch_size, move_limit):
     while 0 in terminated:
         nonterminated_inds = np.where(terminated == 0)[0]
         num_left = len(nonterminated_inds)
-        #print("Starting iteration. " + str(num_left) + " left.")
+        if verbosity > 1:
+            print("Starting iteration. " + str(num_left) + " left.")
         querying = np.zeros((num_left, 20, 20, 12))
         for i in range(num_left):
             querying[i,:,:,:] = copy.deepcopy(positions[nonterminated_inds[i]].arr)
@@ -44,13 +46,14 @@ def monte_carlo(init_position, model, num_simulations, batch_size, move_limit):
                     print("New best solution: " + str(-pos.moves_penalty))
                     best_soln = -pos.moves_penalty
                 terminated[nonterminated_inds[i]] = 1
-            if -pos.moves_penalty >= move_limit:
+            if -pos.moves_penalty >= move_limit or -pos.moves_penalty > best_soln:
                 outofmoves += 1
                 terminated[nonterminated_inds[i]] = 1
-    print("Number that solved: " + str(solved))
-    print("Number that ran out of legal moves: " + str(nolegal))
-    print("Number that ran out of moves: " + str(outofmoves))
-    print("Best solution found: " + str(best_soln))
+    if verbosity > 0:
+        print("Number that solved: " + str(solved))
+        print("Number that ran out of legal moves: " + str(nolegal))
+        print("Number that ran out of moves: " + str(outofmoves))
+        print("Best solution found: " + str(best_soln))
                 
     
     
