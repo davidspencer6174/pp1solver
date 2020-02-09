@@ -287,12 +287,6 @@ def append_level_data(file_string, data_x, data_y, shifts = False):
         del data_x[-8:]
     else:
         del data_x[before_augmenting:]
-    after_appending_length = len(data_x)
-    if shifts:
-        for i in range(after_appending_length - before_appending_length):
-            if random.random() > 1/(after_appending_length-before_appending_length)**.3:
-                del data_x[after_appending_length - i - 1]
-                del data_y[after_appending_length - i - 1]
     print(len(data_x))
     print(len(data_y))
         
@@ -355,7 +349,7 @@ def x_shifts(arr, data_x, rng_seq, rng_indices, shifts = False):
         for shift_y in range(20 - height):
             shifted_arr_x = np.roll(arr, shift_x, axis = 0)
             shifted_arr_both = np.roll(shifted_arr_x, shift_y, axis = 1)
-            if rng_seq[rng_indices[0]] < 10/((20-width)*(20-height)):
+            if rng_seq[rng_indices[0]] < 3/((20-width)*(20-height)):
                 x_rotations(copy.deepcopy(shifted_arr_both), data_x)
             rng_indices[0] += 1
 
@@ -401,7 +395,7 @@ def y_shifts(move_x, move_y, direction, data_y, arr, rng_seq, rng_indices, shift
         height = 19
     for shift_x in range(20 - width):
         for shift_y in range(20 - height):
-            if rng_seq[rng_indices[1]] < 10/((20-width)*(20-height)):
+            if rng_seq[rng_indices[1]] < 3/((20-width)*(20-height)):
                 y_rotations(move_x+shift_x, move_y+shift_y, direction, data_y)
             rng_indices[1] += 1
 
