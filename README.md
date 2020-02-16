@@ -41,6 +41,15 @@ The network at present is very simple: two convolutional layers and a dense laye
 
 The data consists of 2970 actions. After including rotations and reflections, we have 23760 data points.
 
+# Set Up
+
+1. Install [Anaconda](https://www.anaconda.com/distribution/) and [git](https://git-scm.com/downloads) 
+2. Open Anaconda Prompt and execute "git clone https://github.com/davidspencer6174/pp1solver.git" in your desired folder
+3. execute "conda env create -f environment.yml --force"
+4. execute "conda activate pp1solver"
+5. execute "python main.py" to train or "python gameplay.py" to play levels
+
+
 # To-do list
 
 * Try dealing with overfitting via regularization rather than dropout. Also experiment with dropout on the input instead of after the hidden layers.
