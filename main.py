@@ -16,7 +16,9 @@ netname = "deep_moveinfo"
 model = None
 train = False
 if train:
-    model = perform_training(True, netname)
+    initializing = False
+    model = perform_training(initializing, netname, numlayers = 12,
+                             epochs = 5, training_sets = 10, batch_size = 512)
 else:
     netpath = "networks/policy_" + str(netname) + ".json"
     weights = "networks/policy_" + str(netname) + ".h5"
