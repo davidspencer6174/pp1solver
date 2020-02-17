@@ -3,7 +3,7 @@ import constants
 from random import sample
 import numpy as np
 import tensorflow.keras
-from tensorflow.keras.layers import Dense, Flatten
+from tensorflow.keras.layers import Dense, Flatten, BatchNormalization
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Dropout
 from tensorflow.keras.models import Sequential, model_from_json
 from tensorflow.keras import regularizers
@@ -13,7 +13,7 @@ import utils
 
 def perform_training(initializing, netname, numlayers = 6,
                      inpath = "SolvedLevels/", epochs = 3,
-                     training_sets = 2):
+                     training_sets = 2, batch_size = 32):
     """
 
     Parameters
@@ -52,7 +52,6 @@ def perform_training(initializing, netname, numlayers = 6,
     # This line implicitly assumes that all levels have the same size.
     img_x, img_y, img_z = x_test[0].shape
     
-    batch_size = 32
     num_classes = 4*img_x*img_y
     
     input_shape = (img_x, img_y, img_z)
@@ -71,15 +70,17 @@ def perform_training(initializing, netname, numlayers = 6,
     if initializing:
         model = Sequential()
         #model.add(Dropout(dconst, input_shape = input_shape))
+        model.add(BatchNormalization())
         model.add(Conv2D(64, (3, 3), activation='relu', input_shape = input_shape,
-                         padding = 'same'))
-                         #kernel_regularizer=regularizers.l2(.02), padding = 'same'))
+                         #padding = 'same'))
+                         kernel_regularizer=regularizers.l2(.02), padding = 'same'))
         model.add(Dropout(dconst))
         #model.add(MaxPooling2D())
         for i in range(numlayers - 1):
+            model.add(BatchNormalization())
             model.add(Conv2D(64, (3, 3), activation='relu',
-                             padding = 'same'))
-                             #kernel_regularizer=regularizers.l2(.02), padding = 'same'))
+                             #padding = 'same'))
+                             kernel_regularizer=regularizers.l2(.02), padding = 'same'))
             model.add(Dropout(dconst))
         model.add(Flatten())
         #model.add(Dense(10, activation='relu'))
@@ -108,14 +109,6 @@ def perform_training(initializing, netname, numlayers = 6,
     for i in range(training_sets):
         levels_to_train = constants.TRAIN_LEVELS#sample(levels, 20)
         x_train, y_train = utils.load_levels(levels_to_train, inpath, shifts = True)
-        #for check_over in range(len(x_train)):
-        #    move = np.argmax(y_train[check_over])
-        #    x_pos = move//80
-        #    y_pos = (move%80)//4
-        #    direction = move%4
-        #    print(str(x_pos) + " " + str(y_pos) + " " + str(direction))
-        #    if x_train[check_over, x_pos, y_pos, direction+6] == 0:
-        #        print("Bad data!!!")
         utils.shuffle_in_unison(x_train, y_train)
         x_train = x_train.astype('float32')
         track = model.fit(x_train, y_train,
