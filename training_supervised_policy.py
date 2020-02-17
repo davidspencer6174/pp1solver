@@ -10,6 +10,7 @@ from tensorflow.keras import regularizers
 
 import matplotlib.pylab as plt
 import utils
+import os
 
 def perform_training(initializing, netname, numlayers = 6,
                      inpath = "SolvedLevels/", epochs = 3,
@@ -127,7 +128,11 @@ def perform_training(initializing, netname, numlayers = 6,
     plt.ylabel('Accuracy')
     plt.show()
     
+    
     model_json = model.to_json()
+    dir = os.getcwd()+'/networks'
+    if not os.path.exists(dir):
+        os.mkdir(dir)
     with open("networks/policy_" + netname + ".json", "w") as json_file:
         json_file.write(model_json)
         
