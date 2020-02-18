@@ -127,9 +127,6 @@ class PushPosition:
         """
         x = move//(self.size*4)
         y = move%(self.size*4)//4
-        if constants.CENTERED:
-            x = move//((self.size*2-1)*4) + self.char_loc[0] - (size-1)
-            y = (move%((self.size*2-1)*4))//4 + self.char_loc[1] - (size-1)
         direction = move%4
         return self.make_move(x, y, direction)
 
@@ -267,10 +264,7 @@ def append_level_data(file_string, data_x, data_y, shifts = False):
         else:
             if not push_pos.step_in_direction(step):
                 print("Level did not load properly.")
-    if constants.CENTERED:
-        del data_x[-8:]
-    else:
-        del data_x[before_augmenting:]
+    del data_x[before_augmenting:]
     print(len(data_x))
     print(len(data_y))
         
