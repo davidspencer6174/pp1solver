@@ -315,7 +315,7 @@ def x_shifts(arr, data_x, rng_seq, rng_indices, shifts = False):
 
 
 def rotate_once(x, y, direction):
-    global size
+    size = constants.SIZE
     return size - y - 1, x, (direction-1) % 4
 
         
@@ -324,9 +324,8 @@ def y_rotations(x, y, direction, data_y):
     Transforms move numbers to match the rotations of the
     input board and appends them to data_y.
     """
-    # DOUBLE CHECK THIS
-    global size
-    input_size = size
+    size = constants.SIZE
+    # Do each of four rotations
     for i in range(4):
         data_y.append(onehot(input_size*input_size*4,
                              4*input_size*x + 4*y + direction))
