@@ -13,17 +13,42 @@ class PushPosition:
     """
     A PushPosition is a board position allowing the action
     space to be discretized by pushes.
-    Discretizing by moves is also permitted for the sake of gameplay.
-    In each case, penalties are move-wise, not push-wise.   
+    Discretizing by steps is also permitted for the sake of gameplay.
+    In each case, penalties are step-wise, not push-wise.   
     The PushPosition is initialized with an array of shape
-    (size, size, 10).  Only the first five layers need to be filled in.
-    Current layers: Unmovables, movables, character, winspace, empty
-    space, empty space accessible from current character location
-    (value is 1), blocks which can be
-    pushed in directions 0, 1, 2, 3 (value is -# of moves).
-    Locations of exits which can be reached are on layer 10.
-    Layer 11 is the number of times a square was empty and accessible.
+    (size, size, 12).  Only the first five layers need to be filled in
+    when creating a PushPosition; other layers may be used by the neural network
+    and are initialized and maintained by the class itself.
+    
+    Current layers:
+    0: 1 for unmovable
+    1: 1 for movable
+    2: 1 for character
+    3: 1 for winspace
+    4: 1 for empty
+    
+    5: 1 for empty space accessible from current character location
+    without having to make any pushes
+    6: -#steps for movable which can be pushed in direction 0 (up) or,
+    if a winspace is here and not covered by a movable, -#steps to
+    reach the winspace.
+    7: Same as 6 but for direction 1 (right)
+    8: Same as 6 but for direction 2 (down)
+    9: Same as 6 but for direction 3 (left)
+    
+    10: -#steps for exit reachable immediately
+    11: number of times a square was empty and accessible.
     Note that the exit and character squares are considered empty.
+    
+    Layers 6:10 are required for internal maintenance of the stepcount,
+    and so should not be modified without inserting some other method
+    of keeping track of the steps. However, they aren't particularly
+    suitable as inputs to the neural network, since -1 indicates a
+    very cheap move, -50 indicates a very expensive move, and 0
+    indicates an impossible move. This lack of monotonicity in the
+    desirability of each move according to this input is probably harder
+    to learn. Therefore, these layers are modified for the input to the
+    neural network. This is done in position_transform.
     """
     
     def __init__(self, arr):
@@ -31,15 +56,16 @@ class PushPosition:
         Initializes the position.  The first five planes define the
         level.  The remaining layers are ignored and recomputed.
         """
-        # Allowing for adding input planes
+        # Allowing for adding input planes, in case we want to add more
         if arr.shape[2] < num_layers:
             new_arr = np.zeros((size, size, num_layers))
             new_arr[:,:,0:arr.shape[2]] = arr
             arr = new_arr
         self.size = arr.shape[1]
         self.arr = arr
+        # Array to track moves (discretized by pushes)
         self.moves = []
-        for x in range(self.size):  # Locate character
+        for x in range(self.size):  # Locate the character and exit
             for y in range(self.size):
                 if arr[x, y, 2] == 1:
                     self.char_loc = [x, y]
@@ -47,7 +73,10 @@ class PushPosition:
                     self.exit_loc = [x, y]
         # Clear the extra layers
         self.arr[:,:,5:] = np.zeros((self.size, self.size, num_layers-5))
+        # Initialize the step counter
         self.steps = 0
+        # Figure out which pushes are legal and which empty
+        # squares can be reached
         self.assign_pushes()
         
     def is_unmovable(self, x, y):
@@ -68,18 +97,27 @@ class PushPosition:
     def assign_pushes(self):
         """
         Only for internal use.
-        Whenever the position is initialized or updated, this checks
-        all available pushes from the current position.
+        Whenever the position is initialized or updated, call this to
+        identify all available pushes from the current position.
+        Does so via a breadth-first search, computing the smallest
+        number of steps to reach each empty space and each push.
+        Updates layers 5, 6, 7, 8, 9, 11
         """        
-        self.arr[:,:,5:] = np.zeros((self.size, self.size, num_layers-5))
+        self.arr[:,:,5:10] = np.zeros((self.size, self.size, 5))
+        # Note that the character's current position is reachable
         self.arr[self.char_loc[0], self.char_loc[1], 5] = 1
-        number_moves = 0
-        squares = [self.char_loc]  # Tracks unexplored squares
+        # Track the number of steps away from the character
+        number_steps = 0
+        # Track unexplored squares that need to be explored
+        # (because they have been found to be reachable)
+        squares = [self.char_loc]
         vecs = [[-1, 0], [0, 1], [1, 0], [0, -1]]
         while len(squares) > 0:
             number_steps += 1
             new_squares = []
             for square in squares:
+                #For each neighbor, process it using the append_square
+                #function.
                 for move in range(4):
                     self.append_square(new_squares, square,
                                        vecs[move], move, number_steps)
@@ -98,13 +136,14 @@ class PushPosition:
                 print("Illegal move")
             return constants.ILLEGAL
         vecs = [[-1, 0], [0, 1], [1, 0], [0, -1]]
-        self.moves.append(np.array([x, y, direction]))  # Tracks moves pushwise
-        # Won without pushing
+        # Add this move to the list of moves.
+        self.moves.append(np.array([x, y, direction]))
+        # Check whether a win was reached without pushing
         if self.is_win(x, y) and not self.is_movable(x, y):
             self.steps += self.arr[x, y, 10]
             return constants.WIN  # Should not play more moves after this
-        # Won with pushing
         self.steps += self.arr[x, y, direction+6]
+        # Check whether a win was reached by pushing
         if self.is_win(x, y):
             return constants.WIN
         # Three planes to update: character, movable, empty.
@@ -136,8 +175,10 @@ class PushPosition:
         Output is true if and only if the step is legal.
         """
         vec = [[-1, 0], [0, 1], [1, 0], [0, -1]][direction]
+        # Determine the character's new position
         new_x = self.char_loc[0] + vec[0]
         new_y = self.char_loc[1] + vec[1]
+        # Stepping out of bounds is illegal.
         if not self.in_bounds(new_x, new_y):
             return False
         # Check whether the requested step is a legal push or win
@@ -158,7 +199,8 @@ class PushPosition:
             self.assign_pushes()
             self.steps += 1
             return True
-        # If the requested move is a legal push or win
+        # If the requested step is a legal push or win, can
+        # use the make_moves function.
         self.steps += 1
         self.make_move(new_x, new_y, direction)
         return True
@@ -178,7 +220,8 @@ class PushPosition:
         # Out of bounds
         if not self.in_bounds(x, y):
             return
-        # Empty space with no winspace
+        # Empty space with no winspace. Need to investigate
+        # this square further.
         if self.is_empty(x, y) and not self.is_win(x, y):
             if self.arr[x, y, 5] == 1:  # Already explored
                 return
@@ -195,9 +238,9 @@ class PushPosition:
             self.arr[x, y, move+6] = -num_moves
             self.arr[x, y, 10] = -num_moves
             return
-        # The only remaining legal case is a pushable movable.
         if not self.in_bounds(x+vec[0], y+vec[1]):
             return
+        # The only remaining legal case is a pushable movable.
         if self.is_movable(x, y) and self.is_empty(x+vec[0], y+vec[1]):
             self.arr[x, y, move+6] = -num_moves
             # Now account for possible win
@@ -228,12 +271,27 @@ class PushPosition:
 
         
 def append_level_data(file_string, data_x, data_y, shifts = False):
+    """
+    file_string: filename for the level
+    data_x: list of input positions to which data
+    for this level should be appended
+    data_y: list of correct moves to which correct
+    moves for this level should be appended
+    shifts: whether to include rotations and
+    translations of the positions
+    """
     f = open(file_string, "rb")
     lvl_data = pickle.load(f)
+    # lvl_data contains three things: an array that can be used to
+    # initialize the starting position, an array with the character
+    # location, and the sequence of steps that beats the level.
     f.close()
     
-    #Too much data to hold in memory. Only keep some, but make sure
-    #to keep the same x and y data points.
+    # Including translations, there is too much data to hold
+    # in memory. Only keep some, but make sure
+    # to keep the same x (input) and y (output) data points.
+    # Accomplish this by using the same sequence of random numbers
+    # for x and y.
     rng_seq = np.random.rand(20000)
     rng_indices = [0, 0]
     
@@ -243,34 +301,49 @@ def append_level_data(file_string, data_x, data_y, shifts = False):
     size = arr.shape[0]
     vecs = [[-1, 0], [0, 1], [1, 0], [0, -1]]
     push_pos = PushPosition(arr)
+    # Add x-data for the starting position. The solution's push
+    # is not known yet, but when it is known, it will be added to y-data.
     x_shifts(copy.deepcopy(push_pos.arr), data_x,
              rng_seq, rng_indices, shifts = shifts)
     prev_char_x, prev_char_y = push_pos.char_loc
     before_augmenting = 0
+    # Go through all of the steps in the solution, saving y-data each
+    # time we make a push or solve the level and then saving x-data.
     for (ind, step) in enumerate(steps):
+        # Take the step
         vec = vecs[step]
         new_char_x = push_pos.char_loc[0]+vec[0]
         new_char_y = push_pos.char_loc[1]+vec[1]
+        # Determine whether this step resulted in a move
+        # (meaning either a push or a win)
         if (push_pos.is_movable(new_char_x, new_char_y)
             or push_pos.is_win(new_char_x, new_char_y)):
+            # Save y-data which should be associated with the most
+            # recently saved x-data.
             y_shifts(new_char_x, new_char_y, step, data_y, push_pos.arr,
                      rng_seq, rng_indices, shifts = shifts)
+            # If the step is illegal, the data is bad, since this
+            # is supposed to be an optimal solution.
             if not push_pos.step_in_direction(step):
                 print("Level did not load properly.")
+            # If we have reached a win, don't want to keep the
+            # x-data we are about to save, since there's no
+            # associated y-data. Store an index so we can
+            # delete it later if needed.
             before_augmenting = len(data_x)
+            # Save x-data
             x_shifts(copy.deepcopy(push_pos.arr), data_x,
                      rng_seq, rng_indices, shifts = shifts)
             prev_char_x, prev_char_y = new_char_x, new_char_y
         else:
             if not push_pos.step_in_direction(step):
                 print("Level did not load properly.")
+    # Get rid of x-data which is not associated with any y-data
     del data_x[before_augmenting:]
+    # Print out the length of the input data and output
+    # data, which should always be the same
     print(len(data_x))
     print(len(data_y))
-        
-    #del data_x[-1:]
-    
-    
 
             
 def x_rotations(arr, data_x):
@@ -278,14 +351,19 @@ def x_rotations(arr, data_x):
     Computes all rotations of an input board and appends
     them to data_x.
     """
+    # Make a copy of the array and transform it to prepare to
+    # send it to the neural network.
     cop_arr = copy.deepcopy(arr)
     position_transform(cop_arr)
+    # Save and rotate the position four times
     for i in range(4):
         data_x.append(copy.deepcopy(cop_arr))
         cop_arr = np.rot90(cop_arr)  # Rotate
-        # Now have to fix pushes
+        # Now have to fix pushes, since what used to be up
+        # is no longer up.
         cop_arr[:,:,6:10] = np.roll(cop_arr[:,:,6:10], -1, axis=2)
-    cop_arr = cop_arr.swapaxes(0, 1)  # Reflect
+    # Now reflect it for the other four possibilities
+    cop_arr = cop_arr.swapaxes(0, 1)
     cop_arr[:,:,6:10] = np.flip(cop_arr[:,:,6:10], 2)
     for i in range(4):
         data_x.append(copy.deepcopy(cop_arr))
@@ -296,23 +374,34 @@ def x_rotations(arr, data_x):
     
 def x_shifts(arr, data_x, rng_seq, rng_indices, shifts = False):
     """
-    Computes all shifts of an input board and all rotations of those
-    shifts and appends them to data_x.
+    Computes all valid shifts of an input board arr and all
+    rotations of those shifts and appends them to data_x.
+    rng_seq and rng_indices are used to ensure that the same
+    data are included for x-shifts and y-shifts.
     """
+    # Compute the width and the height of the level to figure
+    # out how much we can translate it without messing anything up
     width, height = tuple(coords.max() for coords in np.nonzero(1 - arr[:,:,0]))
     if not shifts:
         width = 19
         height = 19
+    # Enumerate possible shifts
     for shift_x in range(20 - width):
         for shift_y in range(20 - height):
+            # Roll the array in each axis
             shifted_arr_x = np.roll(arr, shift_x, axis = 0)
             shifted_arr_both = np.roll(shifted_arr_x, shift_y, axis = 1)
+            # Decide whether to keep data for this shift
             if rng_seq[rng_indices[0]] < 3/((20-width)*(20-height)):
                 x_rotations(copy.deepcopy(shifted_arr_both), data_x)
             rng_indices[0] += 1
 
 
 def rotate_once(x, y, direction):
+    """
+    Given coordinates and a direction, computes what
+    they will be after a rotation.
+    """
     size = constants.SIZE
     return size - y - 1, x, (direction-1) % 4
 
@@ -325,14 +414,16 @@ def y_rotations(x, y, direction, data_y):
     size = constants.SIZE
     # Do each of four rotations
     for i in range(4):
-        data_y.append(onehot(input_size*input_size*4,
-                             4*input_size*x + 4*y + direction))
+        # Add encoded move
+        data_y.append(onehot(size*size*4,
+                             4*size*x + 4*y + direction))
         x, y, direction = rotate_once(x, y, direction)
     direction = 3 - direction
+    # Reflect and then do each of four rotations again
     x, y = y, x
     for i in range(4):
-        data_y.append(onehot(input_size*input_size*4,
-                             4*input_size*x + 4*y + direction))
+        data_y.append(onehot(size*size*4,
+                             4*size*x + 4*y + direction))
         x, y, direction = rotate_once(x, y, direction)
     x, y = y, x
     direction = 3 - direction
@@ -342,24 +433,31 @@ def y_shifts(move_x, move_y, direction, data_y, arr, rng_seq, rng_indices, shift
     Transforms move numbers to match the shifts and rotations
     of the input board and appends them to data_y.
     """
+    # Compute the width and the height of the level to figure
+    # out how much we can translate it without messing anything up
     width, height = tuple(coords.max() for coords in np.nonzero(1 - arr[:,:,0]))
     if not shifts:
         width = 19
         height = 19
+    # Enumerate possible shifts
     for shift_x in range(20 - width):
         for shift_y in range(20 - height):
+            # Decide whether to keep data for this shift
             if rng_seq[rng_indices[1]] < 3/((20-width)*(20-height)):
+                # Append data shifted in each axis
                 y_rotations(move_x+shift_x, move_y+shift_y, direction, data_y)
             rng_indices[1] += 1
 
                         
 def load_levels(levels, solved_path, shifts = False):
     """Makes data out of solved levels"""
+    # Initialize lists for the data
     data_x = []
     data_y = []
     for level in levels:
         print(level)
         append_level_data(solved_path+level, data_x, data_y, shifts = shifts)
+    # Turn the lists into numpy arrays to pass into the network
     return np.array(data_x), np.array(data_y)
 
     
@@ -406,7 +504,9 @@ def get_position(arr, moves):
     Fetches a PushPosition based on the initial array and the
     moves list.  Moves are discretized by pushes.
     """
+    # Create a PushPosition from the original array
     p = PushPosition(arr)
+    # Make each move in the moves list
     for move in moves:
         p.make_move(move[0], move[1], move[2], notifying_illegal = True)
     return p
@@ -425,18 +525,23 @@ def set_up_position(pass_in, size_x, size_y): #setting up a position given an ar
                 arr[x,y,3] = 1
     return PushPosition(arr)
 
-    
+
 def shuffle_in_unison(l1, l2):
+    """
+    Used to shuffle training data.
+    """
     indices = np.arange(l1.shape[0])
     np.random.shuffle(indices)
     l1 = l1[indices]
     l2 = l2[indices]
     
-#The PushPosition class maintains 12 planes by default, but
-#it may be that we don't want to put all of them into the
-#neural network, or that we want to modify them in some
-#way. This performs that task.
 def position_transform(arr):
+    """
+    The PushPosition class maintains 12 planes by default, but
+    it may be that we don't want to put all of them into the
+    neural network, or that we want to modify them in some
+    way. This performs that task.
+    """
     
     #Because we pad with zeros in a convolution, we want to pad with
     #unmovables.
@@ -445,6 +550,6 @@ def position_transform(arr):
     arr[:,:,0] = 1 - arr[:,:,0]
     #arr[:,:,2] *= 100
     #arr[:,:,5:12] *= 0
-    arr[:,:,5] *= 0
-    arr[:,:,10:12] *= 0
-    arr[:,:,6:10] == np.sign(arr[:,:,6:10])
+    #arr[:,:,5] *= 0
+    arr[:,:,11] *= 0
+    arr[:,:,6:11] == np.sign(arr[:,:,6:11])

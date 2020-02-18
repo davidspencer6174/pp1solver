@@ -42,41 +42,39 @@ def perform_training(initializing, netname, numlayers = 6,
     
     
     # Set up training and test data.  Inputs are positions,
-    # outputs are (x,y,direction) tuples, representating
+    # outputs are (x,y,direction) tuples encoded to integers
+    # and then to one-hot vectors, representating
     # either a push or a win.
-    #x_train, y_train = utils.load_levels(levels, inpath)
+    # The output vectors are length size*size*4, since a move
+    # in any of 4 directions could occur at any of size*size squares.
     x_test, y_test = utils.load_levels(constants.TEST_LEVELS, inpath)
+    num_classes = 4*constants.SIZE*constants.SIZE
     
-    #utils.shuffle_in_unison(x_train, y_train)
     utils.shuffle_in_unison(x_test, y_test)
     
     # This line implicitly assumes that all levels have the same size.
+    # Therefore, small levels are padded with unmovables.
     img_x, img_y, img_z = x_test[0].shape
-    
-    num_classes = 4*img_x*img_y
     
     input_shape = (img_x, img_y, img_z)
     
-    #x_train = x_train.astype('float32')
     x_test = x_test.astype('float32')
-    #print('x_train shape:', x_train.shape)
-    #print(x_train.shape[0], 'train samples')
     print(x_test.shape[0], 'test samples')
     
     dconst = 0.3  # Dropout between hidden layers
-    #dconst = 0.05
-    # Should try regularizing instead
     
     model = None  # To give the variable global scope
     if initializing:
+        # Create a convolutional network with numlayers layers of 3 by 3
+        # convolutions and a dense layer at the end.
+        # Use batch normalization and regularization.
         model = Sequential()
-        #model.add(Dropout(dconst, input_shape = input_shape))
         model.add(BatchNormalization())
         model.add(Conv2D(64, (3, 3), activation='relu', input_shape = input_shape,
                          #padding = 'same'))
                          kernel_regularizer=regularizers.l2(.02), padding = 'same'))
         model.add(Dropout(dconst))
-        #model.add(MaxPooling2D())
+        
         for i in range(numlayers - 1):
             model.add(BatchNormalization())
             model.add(Conv2D(64, (3, 3), activation='relu',
@@ -84,9 +82,9 @@ def perform_training(initializing, netname, numlayers = 6,
                              kernel_regularizer=regularizers.l2(.02), padding = 'same'))
             model.add(Dropout(dconst))
         model.add(Flatten())
-        #model.add(Dense(10, activation='relu'))
         model.add(Dense(num_classes, activation='softmax'))
     else:
+        # Load the model and its weights
         json_file = open("networks/policy_"+ netname +".json", "r")
         loaded_model_json = json_file.read()
         json_file.close()
@@ -98,6 +96,7 @@ def perform_training(initializing, netname, numlayers = 6,
                 optimizer = tensorflow.keras.optimizers.Adam(),
                 metrics=['accuracy'])
     
+    # Keep track of the model's accuracy
     class AccuracyHistory(tensorflow.keras.callbacks.Callback):
         def on_train_begin(self, logs={}):
             self.acc = []
@@ -107,11 +106,15 @@ def perform_training(initializing, netname, numlayers = 6,
     
     history = AccuracyHistory()
     
+    # Use different training datasets by getting different random
+    # samples from the shifts of the input data
     for i in range(training_sets):
-        levels_to_train = constants.TRAIN_LEVELS#sample(levels, 20)
+        levels_to_train = constants.TRAIN_LEVELS
         x_train, y_train = utils.load_levels(levels_to_train, inpath, shifts = True)
         utils.shuffle_in_unison(x_train, y_train)
         x_train = x_train.astype('float32')
+        
+        # Train the network
         track = model.fit(x_train, y_train,
                           batch_size=batch_size,
                           epochs=epochs,
@@ -128,7 +131,7 @@ def perform_training(initializing, netname, numlayers = 6,
     plt.ylabel('Accuracy')
     plt.show()
     
-    
+    # Save the trained network
     model_json = model.to_json()
     dir = os.getcwd()+'/networks'
     if not os.path.exists(dir):

@@ -8,14 +8,39 @@ from itertools import count
 from time import clock
 import constants
 
-# A first attempt at a search.
-# This is not a sophisticated search. It expands nodes based
-# on a simple 
+# A first attempt at a search. Each node in the tree represents a
+# position attained by some sequence of moves from the starting position.
+# The search "expands" nodes (that is, creates nodes for all possible
+# moves from the position represented by the node) until it finds
+# winning nodes, and then starts terminating other branches
+# based on Manhattan distance.
+
+
+# This is not a sophisticated search. The only information used
+# to determine which nodes to expand next is the number of
+# steps, the history of the policy values at each move, and
+# the history of the number of legal moves at each move.
+
+# We hope to add some way of telling which positions are more
+# or less likely to be solvable.
 
 def tree_search(full_init_position, model, positions_to_check,
-                verbosity = 1):
+                batch_size = 128, verbosity = 1):
+    """
+    full_init_position: a PushPosition for the starting position
+    to search from
+    model: a neural network which outputs policy values
+    positons_to_check: the number of positions to expand during
+    the search
+    batch_size: the number of positions to process at once
+    verbosity: 0, 1, or 2, determines how many debug messages
+    are printed
+    """
+    # Have a tiebreaker so that the heapq always has some way of
+    # determining which node should be expanded next.
     tiebreaker = count()
     
+    # Make a copy of the original state.
     original_arr = copy.deepcopy(full_init_position.arr)
     original_char_loc = copy.deepcopy(full_init_position.char_loc)
     size = full_init_position.size
@@ -28,11 +53,14 @@ def tree_search(full_init_position, model, positions_to_check,
     positions = []  # This will be used as a heapq of positions.
     # For the purpose of memory efficiency, the positions are
     # stored as a list of moves rather than as a position array.
-    # For passing through the net, one can return to the original
-    # position and use the moves to reconstruct the current position.
+    # Whenever we need an array to pass to the net, we return to
+    # the original position and use the moves to reconstruct the
+    # current position. This costs time but saves memory.
     
+    # Push the first position onto the heap with priority 0.
     heappush(positions, seed_position)
     
+    # Variables to track the status of the search
     deepest_explored = 0
     positions_checked = 0
     
@@ -42,8 +70,7 @@ def tree_search(full_init_position, model, positions_to_check,
     shortest_soln_length = 100
     shortest_soln = []
     all_solutions = []
-    
-    batch_size = 32
+
     start_time = clock()
     end_time = clock()
     
@@ -53,23 +80,31 @@ def tree_search(full_init_position, model, positions_to_check,
             print("Deepest branch so far: {}".format(deepest_explored))
             print("Best solution length so far: {}".format(shortest_soln_length))
             print("Number of positions in queue: {}".format(len(positions)))
+        # If all branches have been terminated, the search is over.
         if len(positions) == 0:
             break
+        # Prepare to store the positions and corresponding
+        # priorities for the nodes we will expand.
         old_positions = []
         querying = []
         old_x_priorities = []
-        # The first loops takes the top batch_size positions by
+        # This loop takes the top batch_size positions by
         # priority and prepares them to be sent through the net.
         for i in range(min(batch_size, len(positions))):
+            # Get the highest-priority position (encoded as a
+            # sequence of moves)
             position = heappop(positions)
-            if i == 0 and verbosity > 1:  # Just for tracking progress
+            if i == 0 and verbosity > 1:
                 print("Current penalty: {}".format(position[0]))
-            # Now get from the original position to the current position
+            # Get from the original position to the high-priority position
             old_positions.append(utils.get_position(copy.deepcopy(original_arr), 
                                                     position[2]))
             # Add the array to the net input
             querying.append(copy.deepcopy(old_positions[-1].arr))
+            # Perform the transformation required to pass the
+            # position into the neural network
             utils.position_transform(querying[-1])
+            # Remember the priority for the parent position
             old_x_priorities.append(position[0])
             positions_checked += 1
         querying = np.array(querying)
@@ -93,9 +128,9 @@ def tree_search(full_init_position, model, positions_to_check,
             max_move = size*size*4
             for move in range(0, max_move):
                 move_result = position_copy.make_move_number(move)
-                if move_result == -1:
+                if move_result == constants.ILLEGAL:
                     continue
-                elif move_result == 10000:  # Found a win
+                elif move_result == constants.WIN:  # Found a win
                     end_time = clock()
                     if -position_copy.steps >= shortest_soln_length:
                         continue
