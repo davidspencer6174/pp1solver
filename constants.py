@@ -1,5 +1,3 @@
-CENTERED = False
-
 TRAIN_LEVELS = [ "Sandstorm", "Dividers", "AllLockedUp", "ClosetSpace",
                 "LeakInTheRoof", "2112GrandFinale", "WetSalmon", "RushingRiver",
                 "CupOfWaffles", "Abandoned", "RunningMan", "Thirteen",

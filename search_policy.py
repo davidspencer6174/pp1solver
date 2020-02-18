@@ -67,14 +67,9 @@ def tree_search(full_init_position, model, positions_to_check,
             # Now get from the original position to the current position
             old_positions.append(utils.get_position(copy.deepcopy(original_arr), 
                                                     position[2]))
-            # Center the character and add the array to the net input
-            if constants.CENTERED:
-                querying.append(utils.centered(old_positions[-1].arr,
-                                               old_positions[-1].char_loc[0],
-                                               old_positions[-1].char_loc[1]))
-            else:
-                querying.append(copy.deepcopy(old_positions[-1].arr))
-                utils.position_transform(querying[-1])
+            # Add the array to the net input
+            querying.append(copy.deepcopy(old_positions[-1].arr))
+            utils.position_transform(querying[-1])
             old_x_priorities.append(position[0])
             positions_checked += 1
         querying = np.array(querying)
@@ -96,8 +91,6 @@ def tree_search(full_init_position, model, positions_to_check,
             oldmoves_penalty = position_copy.moves_penalty
             # Now try each possible move and add to the positions queue
             max_move = size*size*4
-            if constants.CENTERED:
-                max_move = (2*size-1)*(2*size-1)*4
             for move in range(0, max_move):
                 move_result = position_copy.make_move_number(move)
                 if move_result == -1:

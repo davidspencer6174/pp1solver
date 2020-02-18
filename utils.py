@@ -242,13 +242,8 @@ def append_level_data(file_string, data_x, data_y, shifts = False):
     size = arr.shape[0]
     vecs = [[-1, 0], [0, 1], [1, 0], [0, -1]]
     push_pos = PushPosition(arr)
-    if constants.CENTERED:
-        x_rotations(centered(copy.deepcopy(push_pos.arr),
-                             char_loc[0], char_loc[1]),
-                    data_x)
-    else:
-        x_shifts(copy.deepcopy(push_pos.arr), data_x,
-                 rng_seq, rng_indices, shifts = shifts)
+    x_shifts(copy.deepcopy(push_pos.arr), data_x,
+             rng_seq, rng_indices, shifts = shifts)
     prev_char_x, prev_char_y = push_pos.char_loc
     before_augmenting = 0
     for (ind, step) in enumerate(steps):
@@ -257,22 +252,13 @@ def append_level_data(file_string, data_x, data_y, shifts = False):
         new_char_y = push_pos.char_loc[1]+vec[1]
         if (push_pos.is_movable(new_char_x, new_char_y)
             or push_pos.is_win(new_char_x, new_char_y)):
-            if constants.CENTERED:
-                y_rotations(new_char_x+size-1-prev_char_x,
-                            new_char_y+size-1-prev_char_y,
-                            step, data_y)
-            else:
-                y_shifts(new_char_x, new_char_y, step, data_y, push_pos.arr,
-                         rng_seq, rng_indices, shifts = shifts)
-            if not push_pos.move_in_direction(step):
+            y_shifts(new_char_x, new_char_y, step, data_y, push_pos.arr,
+                     rng_seq, rng_indices, shifts = shifts)
+            if not push_pos.step_in_direction(step):
                 print("Level did not load properly.")
-            if constants.CENTERED:
-                x_rotations(centered(copy.deepcopy(push_pos.arr), new_char_x,
-                                                   new_char_y), data_x)
-            else:
-                before_augmenting = len(data_x)
-                x_shifts(copy.deepcopy(push_pos.arr), data_x,
-                         rng_seq, rng_indices, shifts = shifts)
+            before_augmenting = len(data_x)
+            x_shifts(copy.deepcopy(push_pos.arr), data_x,
+                     rng_seq, rng_indices, shifts = shifts)
             prev_char_x, prev_char_y = new_char_x, new_char_y
         else:
             if not push_pos.move_in_direction(step):
@@ -287,18 +273,6 @@ def append_level_data(file_string, data_x, data_y, shifts = False):
     #del data_x[-1:]
     
     
-def centered(arr, char_x, char_y):
-    """
-    Puts the size by size level in a centered 2*size-1 by
-    2*size-1 level padded with unmovables.
-    """
-    global size
-    new_arr = np.zeros((2*size-1, 2*size-1, num_layers))
-    new_arr[:,:,0] = np.ones((2*size-1, 2*size-1))
-    new_arr[size-1-char_x:2*size-1-char_x,
-            size-1-char_y:2*size-1-char_y,
-            :] = arr
-    return new_arr
 
             
 def x_rotations(arr, data_x):
@@ -342,8 +316,6 @@ def x_shifts(arr, data_x, rng_seq, rng_indices, shifts = False):
 
 def rotate_once(x, y, direction):
     global size
-    if constants.CENTERED:
-        return (2*size-1)-y-1, x, (direction-1) % 4
     return size - y - 1, x, (direction-1) % 4
 
         
@@ -355,8 +327,6 @@ def y_rotations(x, y, direction, data_y):
     # DOUBLE CHECK THIS
     global size
     input_size = size
-    if constants.CENTERED:
-        input_size = 2*size-1
     for i in range(4):
         data_y.append(onehot(input_size*input_size*4,
                              4*input_size*x + 4*y + direction))
