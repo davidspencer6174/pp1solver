@@ -80,15 +80,15 @@ def tree_search(full_init_position, model, positions_to_check,
             exit_loc = old_positions[i].exit_loc
             char_loc = old_positions[i].char_loc
             manhat = abs(exit_loc[0]-char_loc[0]) + abs(exit_loc[1]-char_loc[1])
-            if -old_positions[i].moves_penalty + manhat > shortest_soln_length:
+            if -old_positions[i].steps + manhat > shortest_soln_length:
                 continue
             # Update depth statistic (for user to see)
-            if -old_positions[i].moves_penalty > deepest_explored:
-                deepest_explored = -old_positions[i].moves_penalty
+            if -old_positions[i].steps > deepest_explored:
+                deepest_explored = -old_positions[i].steps
             # Count the legal moves (to contextualize probabilities)
             num_legal = len(np.nonzero(old_positions[i].arr[:,:,6:10]))
             position_copy = copy.deepcopy(old_positions[i])
-            oldmoves_penalty = position_copy.moves_penalty
+            old_steps = position_copy.steps
             # Now try each possible move and add to the positions queue
             max_move = size*size*4
             for move in range(0, max_move):
@@ -97,9 +97,9 @@ def tree_search(full_init_position, model, positions_to_check,
                     continue
                 elif move_result == 10000:  # Found a win
                     end_time = clock()
-                    if -position_copy.moves_penalty >= shortest_soln_length:
+                    if -position_copy.steps >= shortest_soln_length:
                         continue
-                    shortest_soln_length = -position_copy.moves_penalty
+                    shortest_soln_length = -position_copy.steps
                     if verbosity > 0:
                         print("Found win of length {}".format(shortest_soln_length))
                     shortest_soln = position_copy.moves
@@ -109,7 +109,7 @@ def tree_search(full_init_position, model, positions_to_check,
                                           clock()-start_time,
                                           shortest_soln_length))
                 else:
-                    move_diff = oldmoves_penalty - position_copy.moves_penalty
+                    move_diff = old_steps - position_copy.steps
                     # This formula is unfortunately full of magic numbers.
                     # The idea is to slightly penalize long paths and reward
                     # paths with lots of moves that are highly likely

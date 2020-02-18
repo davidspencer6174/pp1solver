@@ -42,11 +42,11 @@ def monte_carlo(init_position, model, num_simulations, batch_size, move_limit,
                 #    print("Failed to have legal move on top")
             if move_result == 10000:
                 solved += 1
-                if -pos.moves_penalty < best_soln:
-                    print("New best solution: " + str(-pos.moves_penalty))
-                    best_soln = -pos.moves_penalty
+                if -pos.steps < best_soln:
+                    print("New best solution: " + str(-pos.steps))
+                    best_soln = -pos.steps
                 terminated[nonterminated_inds[i]] = 1
-            if -pos.moves_penalty >= move_limit or -pos.moves_penalty > best_soln:
+            if -pos.steps >= move_limit or -pos.steps > best_soln:
                 outofmoves += 1
                 terminated[nonterminated_inds[i]] = 1
     if verbosity > 0:

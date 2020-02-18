@@ -117,16 +117,16 @@ while not done:
             
             # Moves
             if event.key == pg.K_UP:
-                if p.move_in_direction(0):
+                if p.step_in_direction(0):
                     steps.append(0)
             if event.key == pg.K_RIGHT:
-                if p.move_in_direction(1):
+                if p.step_in_direction(1):
                     steps.append(1)
             if event.key == pg.K_DOWN:
-                if p.move_in_direction(2):
+                if p.step_in_direction(2):
                     steps.append(2)
             if event.key == pg.K_LEFT:
-                if p.move_in_direction(3):
+                if p.step_in_direction(3):
                     steps.append(3)
                 
             if event.key == pg.K_r:  # R to restart
@@ -136,7 +136,7 @@ while not done:
                 steps = steps[:-1]
                 p, width, height = utils.import_raw_level(level_name, rawpath)
                 for i in steps:
-                    p.move_in_direction(i)
+                    p.step_in_direction(i)
             if event.key == pg.K_s:  # S to save data
                 comprehensive_arr = [original_arr, originalchar_loc, steps]
                 f2 = open(outpath+level_name, "wb")

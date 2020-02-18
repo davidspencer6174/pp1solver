@@ -47,7 +47,7 @@ class PushPosition:
                     self.exit_loc = [x, y]
         # Clear the extra layers
         self.arr[:,:,5:] = np.zeros((self.size, self.size, num_layers-5))
-        self.moves_penalty = 0
+        self.steps = 0
         self.assign_pushes()
         
     def is_unmovable(self, x, y):
@@ -77,12 +77,12 @@ class PushPosition:
         squares = [self.char_loc]  # Tracks unexplored squares
         vecs = [[-1, 0], [0, 1], [1, 0], [0, -1]]
         while len(squares) > 0:
-            number_moves += 1
+            number_steps += 1
             new_squares = []
             for square in squares:
                 for move in range(4):
                     self.append_square(new_squares, square,
-                                       vecs[move], move, number_moves)
+                                       vecs[move], move, number_steps)
             squares = new_squares
         self.arr[:,:,11] += self.arr[:,:,5]
         
@@ -101,10 +101,10 @@ class PushPosition:
         self.moves.append(np.array([x, y, direction]))  # Tracks moves pushwise
         # Won without pushing
         if self.is_win(x, y) and not self.is_movable(x, y):
-            self.moves_penalty += self.arr[x, y, 10]
+            self.steps += self.arr[x, y, 10]
             return constants.WIN  # Should not play more moves after this
-        self.moves_penalty += self.arr[x, y, direction+6]
         # Won with pushing
+        self.steps += self.arr[x, y, direction+6]
         if self.is_win(x, y):
             return constants.WIN
         # Three planes to update: character, movable, empty.
@@ -133,32 +133,36 @@ class PushPosition:
         direction = move%4
         return self.make_move(x, y, direction)
 
-    def move_in_direction(self, direction):
+    def step_in_direction(self, direction):
         """
-        Moves in a direction for the sake of gameplay.
-        Output is true if and only if the move is legal.
+        Steps in a direction for the sake of gameplay.
+        Output is true if and only if the step is legal.
         """
         vec = [[-1, 0], [0, 1], [1, 0], [0, -1]][direction]
         new_x = self.char_loc[0] + vec[0]
         new_y = self.char_loc[1] + vec[1]
         if not self.in_bounds(new_x, new_y):
             return False
-        # If the requested move is not a legal push
+        # Check whether the requested step is a legal push or win
+        # using the already-computed push planes. If not, need
+        # more work.
         if self.arr[new_x, new_y, direction+6] == 0:
-            # If the requested move hits something
+            # If the requested step hits something,
             if (self.is_unmovable(new_x, new_y)
                 or self.is_movable(new_x, new_y)):
                 return False
-            # The move is now known to be legal.
+            # The step is now known to be legal (and it is in
+            # empty space, since it's not a push or win).
+            # Move the character
             self.arr[self.char_loc[0], self.char_loc[1], 2] = 0
             self.arr[new_x, new_y, 2] = 1
             self.char_loc = [new_x, new_y]
             # Now need to redo planes with new distances
             self.assign_pushes()
-            self.moves_penalty += 1
+            self.steps += 1
             return True
         # If the requested move is a legal push or win
-        self.moves_penalty += 1
+        self.steps += 1
         self.make_move(new_x, new_y, direction)
         return True
         
@@ -261,7 +265,7 @@ def append_level_data(file_string, data_x, data_y, shifts = False):
                      rng_seq, rng_indices, shifts = shifts)
             prev_char_x, prev_char_y = new_char_x, new_char_y
         else:
-            if not push_pos.move_in_direction(step):
+            if not push_pos.step_in_direction(step):
                 print("Level did not load properly.")
     if constants.CENTERED:
         del data_x[-8:]
