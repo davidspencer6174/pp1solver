@@ -1,6 +1,7 @@
 import copy
 import numpy as np
 import utils
+import constants
 
 def monte_carlo(init_position, model, num_simulations, batch_size, move_limit,
                 verbosity = 1):
