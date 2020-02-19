@@ -127,11 +127,24 @@ class PushPosition:
     def in_bounds(self, x, y):
         return (x >= 0 and y >= 0 and x < self.size and y < self.size)
                     
-    def make_move(self, x, y, direction, notifying_illegal = False):
+    def make_move(self, x, y, direction, notifying_illegal = False,
+                  force = False, assign_pushes = True):
         """
         Makes a pushwise move at (x,y) in one of the four directions.
+        By default, this move will only occur if it is known to
+        be legal due to an indicator at (x,y) in plane
+        6, 7, 8, or 9 (depending on direction).
+        However, in some situations we may wish to execute a sequence
+        of moves which are already known to be legal without
+        maintaining the planes for the sake of computational
+        efficiency (such as during a tree search). In these cases,
+        force=True overrides the legality check and assign_pushes=False
+        preempts maintenance of those planes.
+        Note that this will result in inaccurate stepcounts, so those
+        should still be maintained somehow.
         """
-        if (not self.in_bounds(x, y)) or self.arr[x, y, direction+6] == 0:
+        if (not self.in_bounds(x, y) or
+            self.arr[x, y, direction+6] == 0 and not force):
             if notifying_illegal:
                 print("Illegal move")
             return constants.ILLEGAL
@@ -155,7 +168,8 @@ class PushPosition:
         self.arr[x+vecs[direction][0], y+vecs[direction][1], 1] = 1
         self.char_loc = [x, y]
         # Maintain the possible pushes plane
-        self.assign_pushes()
+        if assign_pushes:
+            self.assign_pushes()
         return constants.PUSH
         
     def make_move_number(self, move):
@@ -510,6 +524,22 @@ def get_position(arr, moves):
     for move in moves:
         p.make_move(move[0], move[1], move[2], notifying_illegal = True)
     return p
+
+def get_position_faster(arr, moves, final_stepcount):
+    """
+    Should only be used if the moves are known to be
+    legal and the final stepcount is known. Saves computational
+    time by avoiding maintenance of planes
+    """
+    p = PushPosition(arr)
+    for (i, move) in enumerate(moves):
+        # We only need to maintain the planes (by calling
+        # assign_pushes) if we are on the last move.
+        p.make_move(move[0], move[1], move[2], force = True,
+                    assign_pushes = (i == len(moves) - 1))
+    p.steps = final_stepcount
+    return p
+
 
     
 def set_up_position(pass_in, size_x, size_y): #setting up a position given an array of 0, 1, 2, etc.

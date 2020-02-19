@@ -48,7 +48,8 @@ def tree_search(full_init_position, model, positions_to_check,
     # The first member in the tuple is the priority.
     # The second member is a tiebreaker.
     # The third member represents the position.
-    seed_position = (0, next(tiebreaker), [])
+    # The fourth member represents the number of steps taken.
+    seed_position = (0, next(tiebreaker), [], 0)
     
     positions = []  # This will be used as a heapq of positions.
     # For the purpose of memory efficiency, the positions are
@@ -97,8 +98,11 @@ def tree_search(full_init_position, model, positions_to_check,
             if i == 0 and verbosity > 1:
                 print("Current penalty: {}".format(position[0]))
             # Get from the original position to the high-priority position
-            old_positions.append(utils.get_position(copy.deepcopy(original_arr), 
-                                                    position[2]))
+            #old_positions.append(utils.get_position(copy.deepcopy(original_arr), 
+            #                                        position[2]))
+            old_positions.append(utils.get_position_faster(copy.deepcopy(original_arr),
+                                                           position[2],
+                                                           position[3]))
             # Add the array to the net input
             querying.append(copy.deepcopy(old_positions[-1].arr))
             # Perform the transformation required to pass the
@@ -155,7 +159,8 @@ def tree_search(full_init_position, model, positions_to_check,
                                     - np.log(predictions[i][move]*num_legal**.75))
                     #print(new_priority)
                     #print(position_copy.moves)
-                    heappush(positions, (new_priority, next(tiebreaker), position_copy.moves))
+                    heappush(positions, (new_priority, next(tiebreaker),
+                                         position_copy.moves, position_copy.steps))
                     position_copy = copy.deepcopy(old_positions[i])
     if verbosity > 0:
         print("Shortest solution found has  {} moves".format(shortest_soln_length))
