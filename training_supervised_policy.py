@@ -14,7 +14,8 @@ import os
 
 def perform_training(initializing, netname, numlayers = 6,
                      inpath = "SolvedLevels/", epochs = 3,
-                     training_sets = 2, batch_size = 32):
+                     training_sets = 2, batch_size = 32,
+                     learning_rate = .001):
     """
 
     Parameters
@@ -33,6 +34,8 @@ def perform_training(initializing, netname, numlayers = 6,
     training_sets: int, optional
         Number of training sets to sample from all possible data
         points. The default is 5.
+    learning_rate: float, optional
+        Learning rate of the Adam optimizer. Default is .001.
 
     Returns
     -------
@@ -93,7 +96,7 @@ def perform_training(initializing, netname, numlayers = 6,
         print("Loaded model from disk")
         
     model.compile(loss=tensorflow.keras.losses.categorical_crossentropy,
-                optimizer = tensorflow.keras.optimizers.Adam(),
+                optimizer = tensorflow.keras.optimizers.Adam(learning_rate=learning_rate),
                 metrics=['accuracy'])
     
     # Keep track of the model's accuracy
