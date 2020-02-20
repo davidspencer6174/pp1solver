@@ -2,6 +2,9 @@ import pickle
 import copy
 import random
 
+import tensorflow as tf
+from tensorflow.keras.models import model_from_json
+
 import numpy as np
 import constants
 
@@ -214,7 +217,7 @@ class PushPosition:
             self.steps += 1
             return True
         # If the requested step is a legal push or win, can
-        # use the make_moves function.
+        # use the make_move function.
         self.steps += 1
         self.make_move(new_x, new_y, direction)
         return True

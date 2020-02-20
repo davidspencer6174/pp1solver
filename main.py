@@ -28,7 +28,8 @@ train = False
 if train:
     initializing = True
     model = perform_training(initializing, netname, numlayers = 12,
-                             epochs = 3, training_sets = 10, batch_size = 512)
+                             epochs = 3, training_sets = 10, batch_size = 64,
+                             learning_rate = .0002)
 else:
     model = get_model(netname)
 

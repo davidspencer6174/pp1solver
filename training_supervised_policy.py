@@ -72,14 +72,14 @@ def perform_training(initializing, netname, numlayers = 6, epochs = 3,
         model.add(BatchNormalization())
         model.add(Conv2D(64, (3, 3), activation='relu', input_shape = input_shape,
                          #padding = 'same'))
-                         kernel_regularizer=regularizers.l2(.02), padding = 'same'))
+                         kernel_regularizer=regularizers.l2(.5), padding = 'same'))
         model.add(Dropout(dconst))
         
         for i in range(numlayers - 1):
             model.add(BatchNormalization())
             model.add(Conv2D(64, (3, 3), activation='relu',
                              #padding = 'same'))
-                             kernel_regularizer=regularizers.l2(.02), padding = 'same'))
+                             kernel_regularizer=regularizers.l2(.5), padding = 'same'))
             model.add(Dropout(dconst))
         model.add(Flatten())
         model.add(Dense(num_classes, activation='softmax'))
@@ -133,9 +133,9 @@ def perform_training(initializing, netname, numlayers = 6, epochs = 3,
     
     # Save the trained network
     model_json = model.to_json()
-    dir = os.getcwd()+'/networks'
-    if not os.path.exists(dir):
-        os.mkdir(dir)
+    directory = os.getcwd()+'/networks'
+    if not os.path.exists(directory):
+        os.mkdir(directory)
     with open("networks/policy_" + netname + ".json", "w") as json_file:
         json_file.write(model_json)
         
