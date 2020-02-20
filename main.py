@@ -21,7 +21,6 @@ do any of the following three things:
     3. Test an existing net. This happens if train = False.
 """
 
-rawpath = "RawLevels/"
 netname = "deep_moveinfo"
 
 model = None

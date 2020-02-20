@@ -583,3 +583,13 @@ def position_transform(arr):
     #arr[:,:,5] *= 0
     arr[:,:,11] *= 0
     arr[:,:,6:11] == np.sign(arr[:,:,6:11])
+    
+def get_model(netname):
+    netpath = "networks/policy_" + str(netname) + ".json"
+    weights = "networks/policy_" + str(netname) + ".h5"
+    json_file = open(netpath, "r")
+    loaded_model_json = json_file.read()
+    json_file.close()
+    model = model_from_json(loaded_model_json)
+    model.load_weights(weights)
+    return model
