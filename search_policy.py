@@ -148,6 +148,12 @@ def tree_search(full_init_position, model, positions_to_check,
                                           clock()-start_time,
                                           shortest_soln_length))
                 else:
+                    exit_loc = position_copy.exit_loc
+                    char_loc = position_copy.char_loc
+                    manhat = abs(exit_loc[0]-char_loc[0]) + abs(exit_loc[1]-char_loc[1])
+                    if -position_copy.steps + manhat > shortest_soln_length:
+                        position_copy = copy.deepcopy(old_positions[i])
+                        continue
                     move_diff = old_steps - position_copy.steps
                     # This formula is unfortunately full of magic numbers.
                     # The idea is to slightly penalize long paths and reward
