@@ -106,7 +106,7 @@ while done == True:
 	else:
 		done = False
 print('Playing ' + level_name)
-p, width, height = utils.import_raw_level(level_name, rawpath)
+p, width, height = utils.import_raw_level(level_name)
 steps = []
 
 original_arr = copy.deepcopy(p.arr)

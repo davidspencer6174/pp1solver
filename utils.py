@@ -463,24 +463,24 @@ def y_shifts(move_x, move_y, direction, data_y, arr, rng_seq, rng_indices, shift
             rng_indices[1] += 1
 
                         
-def load_levels(levels, solved_path, shifts = False):
+def load_levels(levels, shifts = False):
     """Makes data out of solved levels"""
     # Initialize lists for the data
     data_x = []
     data_y = []
     for level in levels:
         print(level)
-        append_level_data(solved_path+level, data_x, data_y, shifts = shifts)
+        append_level_data(constants.SOLVEDPATH+level, data_x, data_y, shifts = shifts)
     # Turn the lists into numpy arrays to pass into the network
     return np.array(data_x), np.array(data_y)
 
     
-def import_raw_level(level, raw_path):
+def import_raw_level(level):
     """
     Imports a level given the level code in the official PP2 format.
     Pads the level with unmovables to make it 20x20.
     """
-    f = open(raw_path+level+".txt", "r")
+    f = open(constants.RAWPATH+level+".txt", "r")
     level = f.readline().split()  
     metadata = level[0].split(",")
     width, height = int(metadata[2]), int(metadata[3])

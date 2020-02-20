@@ -28,4 +28,8 @@ NORMAL = 1
 PUSH = 2
 WIN = 10000
 
+RAWPATH = "RawLevels/"
+SOLVEDPATH = "SolvedLevels/"
+SOLVABILITYPATH = "SolvabilityData/"
+
 SIZE = 20

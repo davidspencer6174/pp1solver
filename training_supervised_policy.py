@@ -12,8 +12,7 @@ import matplotlib.pylab as plt
 import utils
 import os
 
-def perform_training(initializing, netname, numlayers = 6,
-                     inpath = "SolvedLevels/", epochs = 3,
+def perform_training(initializing, netname, numlayers = 6, epochs = 3,
                      training_sets = 2, batch_size = 32,
                      learning_rate = .001):
     """
@@ -27,8 +26,6 @@ def perform_training(initializing, netname, numlayers = 6,
         The name of the network in the file system.
     numlayers: int, optional
         Number of layers to use in the network. The default is 6.
-    inpath : string, optional
-        Location of levels. The default is "SolvedLevels/".
     epochs: int, optional
         Number of epochs to do per training set. The default is 3.
     training_sets: int, optional
@@ -50,7 +47,7 @@ def perform_training(initializing, netname, numlayers = 6,
     # either a push or a win.
     # The output vectors are length size*size*4, since a move
     # in any of 4 directions could occur at any of size*size squares.
-    x_test, y_test = utils.load_levels(constants.TEST_LEVELS, inpath)
+    x_test, y_test = utils.load_levels(constants.TEST_LEVELS)
     num_classes = 4*constants.SIZE*constants.SIZE
     
     utils.shuffle_in_unison(x_test, y_test)
@@ -113,7 +110,7 @@ def perform_training(initializing, netname, numlayers = 6,
     # samples from the shifts of the input data
     for i in range(training_sets):
         levels_to_train = constants.TRAIN_LEVELS
-        x_train, y_train = utils.load_levels(levels_to_train, inpath, shifts = True)
+        x_train, y_train = utils.load_levels(levels_to_train, shifts = True)
         utils.shuffle_in_unison(x_train, y_train)
         x_train = x_train.astype('float32')
         
