@@ -19,6 +19,8 @@
 #You can change the folder names in the lines after the imports.
 
 import utils as utils
+import tensorflow as tf
+from tensorflow.keras.models import model_from_json
 
 import numpy as np
 
@@ -30,7 +32,7 @@ outpath = "SolvedLevels/"
 #**********************************
 
 
-def draw(width, height, p, steps):    #draw the grid
+def draw(width, height, p, steps, probabilities, using_net):    #draw the grid
     screen.fill(white)
     dim = max(width, height)
     sq_size = 350.0/dim
@@ -49,6 +51,18 @@ def draw(width, height, p, steps):    #draw the grid
             # Exit
             if p.is_win(i, j) and not p.is_movable(i, j):
                 pg.draw.rect(screen, blue, locations)
+            if not using_net:
+                continue
+            square_probs = probabilities[i*80+j*4:i*80+j*4+4]
+            center = np.array([25 + sq_size*(j + 0.5), 25 + sq_size*(i + 0.5)])
+            vecs = np.array([[0, -1], [1, 0], [0, 1], [-1, 0]])
+            for direction in range(4):
+                if square_probs[direction] > .01:
+                    print("hi", i, j, direction)
+                    line_end = center + square_probs[direction] * vecs[direction] * sq_size/2
+                    print(center)
+                    print(line_end)
+                    pg.draw.line(screen, black, center, line_end, 1)
     # Now draw grid
     for i in range(0, width + 1):
         pg.draw.line(screen, black, [25+sq_size*i, 25],
@@ -108,6 +122,15 @@ screen = pg.display.set_mode(scr_size)
 
 clock = pg.time.Clock()
 
+using_net = True
+
+prediction = None
+if using_net:
+    model = utils.get_model(netname)
+    query = np.zeros((1, 20, 20, 12))
+    query[0,:,:,:] = copy.deepcopy(p.arr)
+    utils.position_transform(query[0,:,:,:])
+    prediction = model.predict(query)[0]
 while not done:
     clock.tick(50)
     for event in pg.event.get():
@@ -141,7 +164,13 @@ while not done:
                 comprehensive_arr = [original_arr, originalchar_loc, steps]
                 f2 = open(outpath+level_name, "wb")
                 pickle.dump(comprehensive_arr, f2)
-                f2.close()  
-    draw(width, height, p, steps)
+                f2.close()
+            query = np.zeros((1, 20, 20, 12))
+            query[0,:,:,:] = copy.deepcopy(p.arr)
+            utils.position_transform(query[0,:,:,:])
+            prediction = model.predict(query)[0]
+            print(np.sum(p.arr))
+    draw(width, height, p, steps, prediction, using_net)
     
 pg.quit()
+
