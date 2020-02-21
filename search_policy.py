@@ -119,11 +119,11 @@ def tree_search(full_init_position, model, positions_to_check,
             exit_loc = old_positions[i].exit_loc
             char_loc = old_positions[i].char_loc
             manhat = abs(exit_loc[0]-char_loc[0]) + abs(exit_loc[1]-char_loc[1])
-            if -old_positions[i].steps + manhat > shortest_soln_length:
+            if old_positions[i].steps + manhat > shortest_soln_length:
                 continue
             # Update depth statistic (for user to see)
-            if -old_positions[i].steps > deepest_explored:
-                deepest_explored = -old_positions[i].steps
+            if old_positions[i].steps > deepest_explored:
+                deepest_explored = old_positions[i].steps
             # Count the legal moves (to contextualize probabilities)
             num_legal = len(np.nonzero(old_positions[i].arr[:,:,6:10]))
             position_copy = copy.deepcopy(old_positions[i])
@@ -136,9 +136,9 @@ def tree_search(full_init_position, model, positions_to_check,
                     continue
                 elif move_result == constants.WIN:  # Found a win
                     end_time = clock()
-                    if -position_copy.steps >= shortest_soln_length:
+                    if position_copy.steps >= shortest_soln_length:
                         continue
-                    shortest_soln_length = -position_copy.steps
+                    shortest_soln_length = position_copy.steps
                     if verbosity > 0:
                         print("Found win of length {}".format(shortest_soln_length))
                     shortest_soln = position_copy.moves
@@ -151,10 +151,10 @@ def tree_search(full_init_position, model, positions_to_check,
                     exit_loc = position_copy.exit_loc
                     char_loc = position_copy.char_loc
                     manhat = abs(exit_loc[0]-char_loc[0]) + abs(exit_loc[1]-char_loc[1])
-                    if -position_copy.steps + manhat > shortest_soln_length:
+                    if position_copy.steps + manhat > shortest_soln_length:
                         position_copy = copy.deepcopy(old_positions[i])
                         continue
-                    move_diff = old_steps - position_copy.steps
+                    move_diff = - old_steps + position_copy.steps
                     # This formula is unfortunately full of magic numbers.
                     # The idea is to slightly penalize long paths and reward
                     # paths with lots of moves that are highly likely

@@ -37,13 +37,13 @@ def monte_carlo_advance(positions, model, terminated, nonterminated_inds,
         # simulation and store the number of moves.
         if move_result == constants.WIN:
             results_storage[0] += 1
-            if -pos.steps < results_storage[3]:
-                print("New best solution: " + str(-pos.steps))
-                results_storage[3] = -pos.steps
+            if pos.steps < results_storage[3]:
+                print("New best solution: " + str(pos.steps))
+                results_storage[3] = pos.steps
             terminated[nonterminated_inds[i]] = 1
         # If we have reached the move limit, terminate
         # the simulation.
-        if -pos.steps >= move_limit or -pos.steps > results_storage[3]:
+        if pos.steps >= move_limit or pos.steps > results_storage[3]:
             results_storage[2] += 1
             terminated[nonterminated_inds[i]] = 1
     

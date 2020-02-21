@@ -156,9 +156,9 @@ class PushPosition:
         self.moves.append(np.array([x, y, direction]))
         # Check whether a win was reached without pushing
         if self.is_win(x, y) and not self.is_movable(x, y):
-            self.steps += self.arr[x, y, 10]
+            self.steps -= self.arr[x, y, 10]
             return constants.WIN  # Should not play more moves after this
-        self.steps += self.arr[x, y, direction+6]
+        self.steps -= self.arr[x, y, direction+6]
         # Check whether a win was reached by pushing
         if self.is_win(x, y):
             return constants.WIN
