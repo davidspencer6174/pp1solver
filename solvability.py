@@ -25,7 +25,7 @@ import pickle
 import random
 import utils
 
-def add_data_point(lvl, moves, is_solvable):
+def add_data_point(lvl, moves, is_solvable, num_steps = None):
     try:
         f = open(constants.SOLVABILITYPATH + lvl, "rb")
         solvability_data = pickle.load(f)
@@ -38,9 +38,12 @@ def add_data_point(lvl, moves, is_solvable):
                 already_in = True
                 soln_already_known = data_point[1]
                 data_point[1] = soln_already_known or is_solvable
+                if soln_alread_known:
+                    num_steps = min(num_steps, data_point[2])
+                data_point[2] = num_steps
                 break
         if not already_in:
-            solvability_data.append((moves, is_solvable))
+            solvability_data.append((moves, is_solvable, num_steps))
         f = open(constants.SOLVABILITYPATH + lvl, "wb")
         pickle.dump(solvability_data, f)
         f.close()
@@ -48,6 +51,7 @@ def add_data_point(lvl, moves, is_solvable):
         f = open(constants.SOLVABILITYPATH + lvl, "wb")
         pickle.dump([(moves, is_solvable)], f)
         f.close()
+        
 
 
 def solvability_with_true_path(lvl):
@@ -70,6 +74,7 @@ def solvability_with_true_path(lvl):
     
     position = utils.PushPosition(lvl_data[0])
     steps = lvl_data[2]
+    tot_steps = len(steps)
     
     # Make the steps corresponding to the true position.
     # The PushPosition will translate these steps to moves.
@@ -77,11 +82,46 @@ def solvability_with_true_path(lvl):
         position.step_in_direction(step)
     
     moves = position.moves
-    for i in range(len(moves)  - 1):
-        add_data_point(lvl, moves[:i], 1)
+    
+    print(lvl)
+    position = utils.PushPosition(lvl_data[0])
+    for (i, move) in enumerate(moves):
+        add_data_point(lvl, moves[:i], 1, tot_steps - position.steps)
+        print(moves[:i])
+        print(tot_steps - position.steps)
+        position.make_move(move[0], move[1], move[2])
         
         
-def generate_data(lvl, num_rollouts, max_steps, netname):
+def validate_unsolved(lvl, num_rollouts, max_steps, model):
+    f = open(constants.SOLVABILITYPATH + lvl, "rb")
+    solvability_data = pickle.load(f)
+    f.close()
+    
+    for data_point in solvability_data:
+        if data_point[1]:
+            continue
+        f = open(constants.SOLVEDPATH + lvl, "rb")
+        lvl_data = pickle.load(f)
+        f.close()
+        position = utils.PushPosition(copy.deepcopy(lvl_data[0]))
+        
+        for move in data_point[0]:
+            position.make_move(move[0], move[1], move[2])
+            
+        result = montecarlo.monte_carlo(position, model, num_rollouts,
+                                      512, max_steps, verbosity = 0)
+        solvable = result[0] > 0
+        if solvable:
+            print("Found a solution")
+            num_steps = result[3]    
+            #add_data_point(lvl, position[0], solvable, num_steps)
+        else:
+            print(position.prettystring())
+            print("Verified unsolved")
+        
+        
+        
+def generate_data(lvl, num_rollouts, max_steps, model):
     f = open(constants.SOLVEDPATH + lvl, "rb")
     lvl_data = pickle.load(f)
     f.close()
@@ -102,22 +142,43 @@ def generate_data(lvl, num_rollouts, max_steps, netname):
     
     # Make some moves in this position with probability
     # according to the network.
-    model = utils.get_model(netname)
     number_additional_moves = random.randint(2, 10)
     for i in range(number_additional_moves):
+        results_var = [0, 0, 0, 1000]
         montecarlo.monte_carlo_advance([position], model, [0], [0], 1,
-                                       [1000, 0, 0, 0], 1, 1000)
+                                       results_var, 1, 1000)
+        if results_var[0] > 0:
+            print("Accidentally solved it")
+            generate_data(lvl, num_rollouts, max_steps, model)
+            return
+            
+    
 
     print(position.prettystring())
     moves_for_data = position.moves        
     # Figure out whether this position is possible.
-    solvable = montecarlo.monte_carlo(position, model, num_rollouts,
-                                      512, max_steps, verbosity = 0)[0] > 0
+    result = montecarlo.monte_carlo(position, model, num_rollouts,
+                                      512, max_steps, verbosity = 0)
+    solvable = result[0] > 0
+    num_steps = None
+    if solvable:
+        num_steps = result[3]
     
     print(solvable)
-    add_data_point(lvl, moves_for_data, solvable)
-    
+    print(num_steps)
+    add_data_point(lvl, moves_for_data, solvable, num_steps)
 
-for datagen in range(10):
+directory = os.getcwd()+constants.SOLVABILITYPATH
+if not os.path.exists(directory):    
+    os.mkdir(directory)
+    
+#for lvl in constants.TRAIN_LEVELS:
+#    solvability_with_true_path(lvl)
+    
+model = utils.get_model("deep_moveinfo")
+for datagen in range(5):
     for lvl in constants.TRAIN_LEVELS:
-        generate_data(lvl, 1024, 200, "deep_moveinfo")
+        generate_data(lvl, 64, 200, model)
+        
+#for lvl in constants.TRAIN_LEVELS:
+#    validate_unsolved(lvl, 64, 200, model)
