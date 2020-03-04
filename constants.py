@@ -21,7 +21,8 @@ TEST_LEVELS = ["K2xlgames", "Crazystylie", "LongWayHome", "Tetris",
                "IndustrialBell", "OriginofSymmetry", "Puncture", "RabbitHole",
                "RoundtheBend", "StuckZipper", "Truancy", "TidalWave",
                "Enclosure", "Octopussy", "Checkmate", "Vortex", "TTotal",
-               "SmallIntestines", "TrapDoor", "LinktoPast", "CrossEyed"]
+               "SmallIntestines", "TrapDoor", "LinktoPast", "CrossEyed",
+               "9by8"]
 
 ILLEGAL = -1
 NORMAL = 1

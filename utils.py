@@ -81,6 +81,7 @@ class PushPosition:
         # Figure out which pushes are legal and which empty
         # squares can be reached
         self.assign_pushes()
+        #self.orig_movables = copy.deepcopy(arr[:,:,1])
         
     def is_unmovable(self, x, y):
         return (self.arr[x, y, 0] == 1)
@@ -285,9 +286,19 @@ class PushPosition:
                     out += "-"
             out += "\n"
         return out
+    
+    
+def append_solvability_data(position, solvable, data_x, data_y):
+    rng_seq = np.random.rand(20000)
+    rng_indices = [0, 0]
+    
+    x_shifts(copy.deepcopy(position.arr), data_x, rng_seq,
+             rng_indices)
+    y_solvability_shifts(solvable, data_y, position.arr,
+                         rng_seq, rng_indices, shifts = True)
 
         
-def append_level_data(file_string, data_x, data_y, shifts = False):
+def append_level_push_data(file_string, data_x, data_y, shifts = False):
     """
     file_string: filename for the level
     data_x: list of input positions to which data
@@ -337,7 +348,7 @@ def append_level_data(file_string, data_x, data_y, shifts = False):
             or push_pos.is_win(new_char_x, new_char_y)):
             # Save y-data which should be associated with the most
             # recently saved x-data.
-            y_shifts(new_char_x, new_char_y, step, data_y, push_pos.arr,
+            y_push_shifts(new_char_x, new_char_y, step, data_y, push_pos.arr,
                      rng_seq, rng_indices, shifts = shifts)
             # If the step is illegal, the data is bad, since this
             # is supposed to be an optimal solution.
@@ -423,7 +434,7 @@ def rotate_once(x, y, direction):
     return size - y - 1, x, (direction-1) % 4
 
         
-def y_rotations(x, y, direction, data_y):
+def y_push_rotations(x, y, direction, data_y):
     """
     Transforms move numbers to match the rotations of the
     input board and appends them to data_y.
@@ -445,7 +456,7 @@ def y_rotations(x, y, direction, data_y):
     x, y = y, x
     direction = 3 - direction
     
-def y_shifts(move_x, move_y, direction, data_y, arr, rng_seq, rng_indices, shifts = False):
+def y_push_shifts(move_x, move_y, direction, data_y, arr, rng_seq, rng_indices, shifts = False):
     """
     Transforms move numbers to match the shifts and rotations
     of the input board and appends them to data_y.
@@ -462,7 +473,19 @@ def y_shifts(move_x, move_y, direction, data_y, arr, rng_seq, rng_indices, shift
             # Decide whether to keep data for this shift
             if rng_seq[rng_indices[1]] < 3/((20-width)*(20-height)):
                 # Append data shifted in each axis
-                y_rotations(move_x+shift_x, move_y+shift_y, direction, data_y)
+                y_push_rotations(move_x+shift_x, move_y+shift_y, direction, data_y)
+            rng_indices[1] += 1
+            
+def y_solvability_shifts(solvable, data_y, arr, rng_seq, rng_indices, shifts = False):
+    width, height = tuple(coords.max() for coords in np.nonzero(1 - arr[:,:,0]))
+    if not shifts:
+        width = 19
+        height = 19
+    for shift_x in range(20 - width):
+        for shift_y in range(20 - height):
+            if rng_seq[rng_indices[1]] < 3/((20-width)*(20-height)):
+                for rotreflect in range(8):
+                    data_y.append(solvable)
             rng_indices[1] += 1
 
                         
@@ -473,9 +496,15 @@ def load_levels(levels, shifts = False):
     data_y = []
     for level in levels:
         print(level)
-        append_level_data(constants.SOLVEDPATH+level, data_x, data_y, shifts = shifts)
+        append_level_push_data(constants.SOLVEDPATH+level, data_x, data_y, shifts = shifts)
     # Turn the lists into numpy arrays to pass into the network
     return np.array(data_x), np.array(data_y)
+
+#def load_solvability_data(levels):
+#    """Makes solvability data"""
+#    data_x = []
+#    data_y = []
+    
 
     
 def import_raw_level(level):
@@ -581,7 +610,7 @@ def position_transform(arr):
     #Therefore, we make 0 in the unmovables layer represent an
     #unmovable.
     arr[:,:,0] = 1 - arr[:,:,0]
-    #arr[:,:,2] *= 100
+    arr[:,:,2] *= 0
     #arr[:,:,5:12] *= 0
     #arr[:,:,5] *= 0
     arr[:,:,11] *= 0

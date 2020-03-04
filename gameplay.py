@@ -58,10 +58,7 @@ def draw(width, height, p, steps, probabilities, using_net):    #draw the grid
             vecs = np.array([[0, -1], [1, 0], [0, 1], [-1, 0]])
             for direction in range(4):
                 if square_probs[direction] > .01:
-                    print("hi", i, j, direction)
                     line_end = center + square_probs[direction] * vecs[direction] * sq_size/2
-                    print(center)
-                    print(line_end)
                     pg.draw.line(screen, black, center, line_end, 1)
     # Now draw grid
     for i in range(0, width + 1):
@@ -126,6 +123,8 @@ using_net = True
 
 prediction = None
 if using_net:
+    netname = "deep_moveinfo"
+    #netname = "deep_noinfo"
     model = utils.get_model(netname)
     query = np.zeros((1, 20, 20, 12))
     query[0,:,:,:] = copy.deepcopy(p.arr)
@@ -154,10 +153,10 @@ while not done:
                 
             if event.key == pg.K_r:  # R to restart
                 steps = []
-                p, width, height = utils.import_raw_level(level_name, rawpath)
+                p, width, height = utils.import_raw_level(level_name)
             if event.key == pg.K_u:  # U to undo
                 steps = steps[:-1]
-                p, width, height = utils.import_raw_level(level_name, rawpath)
+                p, width, height = utils.import_raw_level(level_name)
                 for i in steps:
                     p.step_in_direction(i)
             if event.key == pg.K_s:  # S to save data
@@ -169,7 +168,6 @@ while not done:
             query[0,:,:,:] = copy.deepcopy(p.arr)
             utils.position_transform(query[0,:,:,:])
             prediction = model.predict(query)[0]
-            print(np.sum(p.arr))
     draw(width, height, p, steps, prediction, using_net)
     
 pg.quit()

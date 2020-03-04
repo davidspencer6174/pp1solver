@@ -21,17 +21,17 @@ do any of the following three things:
     3. Test an existing net. This happens if train = False.
 """
 
-netname = "deep_moveinfo"
+netname = "deep_nocharinfo"
 
 model = None
 train = False
 if train:
     initializing = True
     model = perform_training(initializing, netname, numlayers = 12,
-                             epochs = 3, training_sets = 10, batch_size = 64,
+                             epochs = 1, training_sets = 10, batch_size = 64,
                              learning_rate = .0002)
 else:
-    model = get_model(netname)
+    model = utils.get_model(netname)
 
 # List of some test levels. Make sure not to use levels
 # that were used for training.
@@ -45,15 +45,15 @@ else:
 # Tetris: 61
 # crazystylie: 33
 # k2xlgames: 47
+
+#deep_moveinfo: optimally solved k2xlgames, crazystylie
 #"9by8", "Crazystylie", "HouseofGod", "Tetris", "k2xlgames",
 #            "AllBoxedUp", "TrickQuestion", "Corner2Corner"
-for lvl in ["9by8",
-            "AllBoxedUp", "TrickQuestion", "Corner2Corner"]:#,
+for lvl in ["Crazystylie"]:
 #for lvl in ["Crumpet"]:
             #"AllBoxedUp", "TrickQuestion", "Corner2Corner"]:
-    
+    init_position = utils.import_raw_level(lvl)[0]
+    #print("monte carlo searching for " + lvl)
+    #monte_carlo(init_position, model, 4096, 512, 100, verbosity = 2)
     print("tree searching for " + lvl)
-    init_position = utils.import_raw_level(lvl, rawpath)[0]
-    tree_search(init_position, model, 40000, verbosity = 1)
-    print("monte carlo searching for " + lvl)
-    monte_carlo(init_position, model, 8192, 512, 100, verbosity = 2)
+    tree_search(init_position, model, 250000, verbosity = 2)

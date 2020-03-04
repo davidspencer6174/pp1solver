@@ -31,25 +31,28 @@ def add_data_point(lvl, moves, is_solvable, num_steps = None):
         solvability_data = pickle.load(f)
         f.close()
         already_in = False
-        soln_known = False
+        soln_already_known = False
         # Check whether this point is already represented.
         for data_point in solvability_data:
-            if moves == data_point[0]:
+            if [i for s in moves for i in s] == [i for s in data_point[0] for i in s]:
                 already_in = True
                 soln_already_known = data_point[1]
                 data_point[1] = soln_already_known or is_solvable
-                if soln_alread_known:
+                if soln_already_known:
+                    if num_steps == None:
+                        print("Already existing data")
+                        return
                     num_steps = min(num_steps, data_point[2])
                 data_point[2] = num_steps
                 break
         if not already_in:
-            solvability_data.append((moves, is_solvable, num_steps))
+            solvability_data.append([moves, is_solvable, num_steps])
         f = open(constants.SOLVABILITYPATH + lvl, "wb")
         pickle.dump(solvability_data, f)
         f.close()
-    except:
+    except IOError as err:
         f = open(constants.SOLVABILITYPATH + lvl, "wb")
-        pickle.dump([(moves, is_solvable)], f)
+        pickle.dump([[moves, is_solvable, num_steps]], f)
         f.close()
         
 
@@ -112,11 +115,12 @@ def validate_unsolved(lvl, num_rollouts, max_steps, model):
                                       512, max_steps, verbosity = 0)
         solvable = result[0] > 0
         if solvable:
+            print(position.prettystring())
             print("Found a solution")
             num_steps = result[3]    
             #add_data_point(lvl, position[0], solvable, num_steps)
         else:
-            print(position.prettystring())
+            #print(position.prettystring())
             print("Verified unsolved")
         
         
@@ -172,13 +176,39 @@ directory = os.getcwd()+constants.SOLVABILITYPATH
 if not os.path.exists(directory):    
     os.mkdir(directory)
     
+for lvl in constants.TEST_LEVELS:
+    f = open(constants.SOLVABILITYPATH + lvl, "rb")
+    solvability_data = pickle.load(f)
+    f.close()
+    print(len(solvability_data))
+    new_s_data = []
+    for d in solvability_data:
+        new_s_data.append([d[0], d[1], d[2]])
+    f = open(constants.SOLVABILITYPATH + lvl, "wb")
+    pickle.dump(new_s_data, f)
+    f.close()
+    print(len(new_s_data))
+        
+    
 #for lvl in constants.TRAIN_LEVELS:
 #    solvability_with_true_path(lvl)
-    
+ 
 model = utils.get_model("deep_moveinfo")
-for datagen in range(5):
-    for lvl in constants.TRAIN_LEVELS:
+
+for lvl in constants.TEST_LEVELS:
+    while True:
+        f = open(constants.SOLVABILITYPATH + lvl, "rb")
+        solvability_data = pickle.load(f)
+        f.close()
+        if len(solvability_data) >= 100:
+            break
         generate_data(lvl, 64, 200, model)
+    
+
+#for datagen in range(1):
+#    for lvl in constants.TEST_LEVELS:
+#        generate_data(lvl, 64, 200, model)
         
 #for lvl in constants.TRAIN_LEVELS:
+#    print(lvl)
 #    validate_unsolved(lvl, 64, 200, model)

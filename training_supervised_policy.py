@@ -109,6 +109,7 @@ def perform_training(initializing, netname, numlayers = 6, epochs = 3,
     # Use different training datasets by getting different random
     # samples from the shifts of the input data
     for i in range(training_sets):
+        print("training set", i)
         levels_to_train = constants.TRAIN_LEVELS
         x_train, y_train = utils.load_levels(levels_to_train, shifts = True)
         utils.shuffle_in_unison(x_train, y_train)
