@@ -288,14 +288,14 @@ class PushPosition:
         return out
     
     
-def append_solvability_data(position, solvable, data_x, data_y):
+def append_solvability_data(position, solvable, data_x, data_y, shifts = False):
     rng_seq = np.random.rand(20000)
     rng_indices = [0, 0]
     
     x_shifts(copy.deepcopy(position.arr), data_x, rng_seq,
-             rng_indices)
+             rng_indices, shifts = shifts)
     y_solvability_shifts(solvable, data_y, position.arr,
-                         rng_seq, rng_indices, shifts = True)
+                         rng_seq, rng_indices, shifts = shifts)
 
         
 def append_level_push_data(file_string, data_x, data_y, shifts = False):
@@ -485,7 +485,7 @@ def y_solvability_shifts(solvable, data_y, arr, rng_seq, rng_indices, shifts = F
         for shift_y in range(20 - height):
             if rng_seq[rng_indices[1]] < 3/((20-width)*(20-height)):
                 for rotreflect in range(8):
-                    data_y.append(solvable)
+                    data_y.append(np.array([solvable]))
             rng_indices[1] += 1
 
                         
@@ -500,10 +500,23 @@ def load_levels(levels, shifts = False):
     # Turn the lists into numpy arrays to pass into the network
     return np.array(data_x), np.array(data_y)
 
-#def load_solvability_data(levels):
-#    """Makes solvability data"""
-#    data_x = []
-#    data_y = []
+def load_solvability_data(levels, shifts = False):
+    """Makes solvability data"""
+    data_x = []
+    data_y = []
+    for lvl in levels:
+        print(lvl)
+        f = open(constants.SOLVABILITYPATH + lvl, "rb")
+        solvability_data = pickle.load(f)
+        f.close()
+        f = open(constants.SOLVEDPATH + lvl, "rb")
+        lvl_data = pickle.load(f)
+        arr, char_loc, steps = np.array(lvl_data[0]), lvl_data[1], lvl_data[2]
+        f.close()
+        for data_point in solvability_data:
+            pos = get_position(copy.deepcopy(arr), data_point[0])
+            append_solvability_data(pos, data_point[1], data_x, data_y, shifts = shifts)
+    return np.array(data_x), np.array(data_y)
     
 
     
@@ -610,7 +623,7 @@ def position_transform(arr):
     #Therefore, we make 0 in the unmovables layer represent an
     #unmovable.
     arr[:,:,0] = 1 - arr[:,:,0]
-    arr[:,:,2] *= 0
+    #arr[:,:,2] *= 0
     #arr[:,:,5:12] *= 0
     #arr[:,:,5] *= 0
     arr[:,:,11] *= 0

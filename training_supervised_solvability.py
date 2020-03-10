@@ -12,9 +12,9 @@ import matplotlib.pylab as plt
 import utils
 import os
 
-def perform_training(initializing, netname, numlayers = 6, epochs = 3,
-                     training_sets = 2, batch_size = 32,
-                     learning_rate = .001):
+def perform_solvability_training(initializing, netname, numlayers = 6, epochs = 3,
+                                  training_sets = 2, batch_size = 32,
+                                  learning_rate = .001):
     """
 
     Parameters
@@ -45,10 +45,7 @@ def perform_training(initializing, netname, numlayers = 6, epochs = 3,
     # outputs are (x,y,direction) tuples encoded to integers
     # and then to one-hot vectors, representing
     # either a push or a win.
-    # The output vectors are length size*size*4, since a move
-    # in any of 4 directions could occur at any of size*size squares.
-    x_test, y_test = utils.load_levels(constants.TEST_LEVELS)
-    num_classes = 4*constants.SIZE*constants.SIZE
+    x_test, y_test = utils.load_solvability_data(constants.TEST_LEVELS)
     
     # This line implicitly assumes that all levels have the same size.
     # Therefore, small levels are padded with unmovables.
@@ -80,7 +77,7 @@ def perform_training(initializing, netname, numlayers = 6, epochs = 3,
                              kernel_regularizer=regularizers.l2(.5), padding = 'same'))
             model.add(Dropout(dconst))
         model.add(Flatten())
-        model.add(Dense(num_classes, activation='softmax'))
+        model.add(Dense(1, activation='sigmoid'))
     else:
         # Load the model and its weights
         json_file = open("networks/policy_"+ netname +".json", "r")
@@ -90,7 +87,7 @@ def perform_training(initializing, netname, numlayers = 6, epochs = 3,
         model.load_weights("networks/policy_" + netname + ".h5")
         print("Loaded model from disk")
         
-    model.compile(loss=tensorflow.keras.losses.categorical_crossentropy,
+    model.compile(loss=tensorflow.keras.losses.binary_crossentropy,
                 optimizer = tensorflow.keras.optimizers.Adam(learning_rate=learning_rate),
                 metrics=['accuracy'])
     
@@ -109,7 +106,7 @@ def perform_training(initializing, netname, numlayers = 6, epochs = 3,
     for i in range(training_sets):
         print("training set", i)
         levels_to_train = constants.TRAIN_LEVELS
-        x_train, y_train = utils.load_levels(levels_to_train, shifts = True)
+        x_train, y_train = utils.load_solvability_data(levels_to_train, shifts = True)
         utils.shuffle_in_unison(x_train, y_train)
         x_train = x_train.astype('float32')
         
@@ -135,10 +132,10 @@ def perform_training(initializing, netname, numlayers = 6, epochs = 3,
     directory = os.getcwd()+'/networks'
     if not os.path.exists(directory):
         os.mkdir(directory)
-    with open("networks/policy_" + netname + ".json", "w") as json_file:
+    with open("networks/solvability_" + netname + ".json", "w") as json_file:
         json_file.write(model_json)
         
-    model.save_weights("networks/policy_" + netname + ".h5")
+    model.save_weights("networks/solvability_" + netname + ".h5")
     print("Saved model to disk")
     
     return model
