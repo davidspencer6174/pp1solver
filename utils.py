@@ -509,12 +509,36 @@ def load_solvability_data(levels, shifts = False):
         f = open(constants.SOLVABILITYPATH + lvl, "rb")
         solvability_data = pickle.load(f)
         f.close()
+        #Get a balanced selection of solvable and unsolvable
+        #positions per level.
+        solvable = 0
+        unsolvable = 0
+        for data_point in solvability_data:
+            if data_point[1]:
+                solvable += 1
+            else:
+                unsolvable += 1
+        solvability_data_subset = []
+        for data_point in solvability_data:
+            #If this position is solvable, should its data be
+            #added? Yes if there's at least as much unsolvable
+            #data as solvable data. If there isn't, add it with
+            #a probability such that we can expect approximately
+            #equal amounts of both classes for this level.
+            if data_point[1] and (unsolvable >= solvable or
+                                  random.random() < unsolvable/solvable):
+                solvability_data_subset.append(data_point)
+            #Similar for unsolvable positions
+            if not data_point[1] and (unsolvable <= solvable or
+                                      random.random() < solvable/unsolvable):
+                solvability_data_subset.append(data_point)
+        
         f = open(constants.SOLVEDPATH + lvl, "rb")
         lvl_data = pickle.load(f)
         arr, char_loc, steps = np.array(lvl_data[0]), lvl_data[1], lvl_data[2]
         f.close()
-        for data_point in solvability_data:
-            pos = get_position(copy.deepcopy(arr), data_point[0])
+        for data_point in solvability_data_subset:
+            pos = get_position_faster(copy.deepcopy(arr), data_point[0], 0)
             append_solvability_data(pos, data_point[1], data_x, data_y, shifts = shifts)
     return np.array(data_x), np.array(data_y)
     
