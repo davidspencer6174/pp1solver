@@ -420,7 +420,7 @@ def x_shifts(arr, data_x, rng_seq, rng_indices, shifts = False):
             shifted_arr_x = np.roll(arr, shift_x, axis = 0)
             shifted_arr_both = np.roll(shifted_arr_x, shift_y, axis = 1)
             # Decide whether to keep data for this shift
-            if rng_seq[rng_indices[0]] < 3/((20-width)*(20-height)):
+            if rng_seq[rng_indices[0]] < constants.EXPECTED_SHIFTS_CHOSEN/((20-width)*(20-height)):
                 x_rotations(copy.deepcopy(shifted_arr_both), data_x)
             rng_indices[0] += 1
 
@@ -471,7 +471,7 @@ def y_push_shifts(move_x, move_y, direction, data_y, arr, rng_seq, rng_indices, 
     for shift_x in range(20 - width):
         for shift_y in range(20 - height):
             # Decide whether to keep data for this shift
-            if rng_seq[rng_indices[1]] < 3/((20-width)*(20-height)):
+            if rng_seq[rng_indices[1]] < constants.EXPECTED_SHIFTS_CHOSEN/((20-width)*(20-height)):
                 # Append data shifted in each axis
                 y_push_rotations(move_x+shift_x, move_y+shift_y, direction, data_y)
             rng_indices[1] += 1
@@ -483,7 +483,7 @@ def y_solvability_shifts(solvable, data_y, arr, rng_seq, rng_indices, shifts = F
         height = 19
     for shift_x in range(20 - width):
         for shift_y in range(20 - height):
-            if rng_seq[rng_indices[1]] < 3/((20-width)*(20-height)):
+            if rng_seq[rng_indices[1]] < constants.EXPECTED_SHIFTS_CHOSEN/((20-width)*(20-height)):
                 for rotreflect in range(8):
                     data_y.append(np.array([solvable]))
             rng_indices[1] += 1

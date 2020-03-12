@@ -24,6 +24,13 @@ TEST_LEVELS = ["K2xlgames", "Crazystylie", "LongWayHome", "Tetris",
                "SmallIntestines", "TrapDoor", "LinktoPast", "CrossEyed",
                "9by8"]
 
+#Constant to determine how many shifts to keep when constructing
+#data per position, in #expectation (assuming that at least this
+#many shifts exist)
+#Decrease this if memory consumed is too much. Increase it if data
+#are insufficient
+EXPECTED_SHIFTS_CHOSEN = .5
+
 ILLEGAL = -1
 NORMAL = 1
 PUSH = 2
