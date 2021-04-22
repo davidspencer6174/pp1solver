@@ -3,7 +3,12 @@ import copy
 import random
 
 import tensorflow as tf
-from tensorflow.keras.models import model_from_json
+from tensorflow.keras.models import model_from_json, Model
+import tensorflow.keras
+from tensorflow.keras.layers import Dense, Flatten, BatchNormalization
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Dropout, Input
+from tensorflow.keras.models import Sequential, model_from_json
+from tensorflow.keras import regularizers
 
 import numpy as np
 import constants
@@ -488,59 +493,7 @@ def y_solvability_shifts(solvable, data_y, arr, rng_seq, rng_indices, shifts = F
                     data_y.append(np.array([solvable]))
             rng_indices[1] += 1
 
-                        
-def load_levels(levels, shifts = False):
-    """Makes data out of solved levels"""
-    # Initialize lists for the data
-    data_x = []
-    data_y = []
-    for level in levels:
-        print(level)
-        append_level_push_data(constants.SOLVEDPATH+level, data_x, data_y, shifts = shifts)
-    # Turn the lists into numpy arrays to pass into the network
-    return np.array(data_x), np.array(data_y)
 
-def load_solvability_data(levels, shifts = False):
-    """Makes solvability data"""
-    data_x = []
-    data_y = []
-    for lvl in levels:
-        print(lvl)
-        f = open(constants.SOLVABILITYPATH + lvl, "rb")
-        solvability_data = pickle.load(f)
-        f.close()
-        #Get a balanced selection of solvable and unsolvable
-        #positions per level.
-        solvable = 0
-        unsolvable = 0
-        for data_point in solvability_data:
-            if data_point[1]:
-                solvable += 1
-            else:
-                unsolvable += 1
-        solvability_data_subset = []
-        for data_point in solvability_data:
-            #If this position is solvable, should its data be
-            #added? Yes if there's at least as much unsolvable
-            #data as solvable data. If there isn't, add it with
-            #a probability such that we can expect approximately
-            #equal amounts of both classes for this level.
-            if data_point[1] and (unsolvable >= solvable or
-                                  random.random() < unsolvable/solvable):
-                solvability_data_subset.append(data_point)
-            #Similar for unsolvable positions
-            if not data_point[1] and (unsolvable <= solvable or
-                                      random.random() < solvable/unsolvable):
-                solvability_data_subset.append(data_point)
-        
-        f = open(constants.SOLVEDPATH + lvl, "rb")
-        lvl_data = pickle.load(f)
-        arr, char_loc, steps = np.array(lvl_data[0]), lvl_data[1], lvl_data[2]
-        f.close()
-        for data_point in solvability_data_subset:
-            pos = get_position_faster(copy.deepcopy(arr), data_point[0], 0)
-            append_solvability_data(pos, data_point[1], data_x, data_y, shifts = shifts)
-    return np.array(data_x), np.array(data_y)
     
 
     
@@ -608,8 +561,6 @@ def get_position_faster(arr, moves, final_stepcount):
                     assign_pushes = (i == len(moves) - 1))
     p.steps = final_stepcount
     return p
-
-
     
 def set_up_position(pass_in, size_x, size_y): #setting up a position given an array of 0, 1, 2, etc.
     arr = np.zeros((20, 20, num_layers))
@@ -624,6 +575,14 @@ def set_up_position(pass_in, size_x, size_y): #setting up a position given an ar
                 arr[x,y,3] = 1
     return PushPosition(arr)
 
+def make_curriculum_pos(position, proportion):
+    new_arr = copy.deepcopy(position.arr)
+    new_arr[:,:,1] = (new_arr[:,:,1] *
+                      np.random.binomial(1,
+                                         proportion,
+                                         size = (constants.SIZE, constants.SIZE)))
+    return PushPosition(new_arr)
+
 
 def shuffle_in_unison(l1, l2):
     """
@@ -633,27 +592,9 @@ def shuffle_in_unison(l1, l2):
     np.random.shuffle(indices)
     l1 = l1[indices]
     l2 = l2[indices]
+
     
-def position_transform(arr):
-    """
-    The PushPosition class maintains 12 planes by default, but
-    it may be that we don't want to put all of them into the
-    neural network, or that we want to modify them in some
-    way. This performs that task.
-    """
-    
-    #Because we pad with zeros in a convolution, we want to pad with
-    #unmovables.
-    #Therefore, we make 0 in the unmovables layer represent an
-    #unmovable.
-    arr[:,:,0] = 1 - arr[:,:,0]
-    #arr[:,:,2] *= 0
-    #arr[:,:,5:12] *= 0
-    #arr[:,:,5] *= 0
-    arr[:,:,11] *= 0
-    arr[:,:,6:11] == np.sign(arr[:,:,6:11])
-    
-def get_model(netname):
+def load_model(netname):
     netpath = "networks/policy_" + str(netname) + ".json"
     weights = "networks/policy_" + str(netname) + ".h5"
     json_file = open(netpath, "r")
@@ -662,3 +603,22 @@ def get_model(netname):
     model = model_from_json(loaded_model_json)
     model.load_weights(weights)
     return model
+
+def initialize_model(numlayers, learning_rate):
+    num_classes = 4*constants.SIZE*constants.SIZE   
+    
+    inp = Input((constants.SIZE,
+                 constants.SIZE,
+                 12))
+    for i in range(numlayers):
+        x = Conv2D(64, (3, 3), activation = 'relu')(inp)
+    x = Flatten()(x)
+    out1 = Dense(num_classes, activation='softmax')(x)
+    out2 = Dense(1, activation='tanh')(x)
+    model = Model(inp, [out1, out2])
+    model.compile(optimizer = tensorflow.keras.optimizers.Adam(learning_rate=learning_rate),
+                  loss = [tensorflow.keras.losses.categorical_crossentropy,
+                          tensorflow.keras.losses.MSE])
+                          #tensorflow.keras.losses.binary_crossentropy])
+    
+    #model.fit(inputData,[outputYLeft, outputYRight], epochs=..., batch_size=...)
