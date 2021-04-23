@@ -27,13 +27,14 @@ for proportion in np.linspace(.05, 1.0, 20):
         successes = 0
         for i in range(num_curriculum_levels):
             curriculum_pos = utils.make_curriculum_pos(start_pos, proportion)
-            success, new_training_data = mcts.solve(model,
-                                                    curriculum_pos,
-                                                    num_playouts)
+            success, new_training_data = mcts.mcts(model,
+                                                   curriculum_pos,
+                                                   num_playouts,
+                                                   training_data)
             successes += success
-            if success:
-                for tup in range(3):
-                    training_data[tup] += new_training_data[tup]
+            #if success:
+            #    for tup in range(3):
+            #        training_data[tup] += new_training_data[tup]
         training_data = training_data[-100000:]
         print(successes/num_curriculum_levels)
         if successes/num_curriculum_levels > winrate_threshold:

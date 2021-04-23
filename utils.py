@@ -191,6 +191,16 @@ class PushPosition:
         y = move%(self.size*4)//4
         direction = move%4
         return self.make_move(x, y, direction)
+    
+    def get_legal_move_numbers(self, move):
+        """Gets a numpy array of legal move
+        numbers"""
+        test = np.nonzero(self.arr[:,:,6:10].flatten())
+        for move in test:
+            copy_pos = PushPosition(copy.deepcopy(self.arr))
+            assert copy_pos.make_move_number(move) != constants.ILLEGAL
+            
+        return np.nonzero(self.arr[:,:,6:10].flatten())
 
     def step_in_direction(self, direction):
         """
@@ -528,6 +538,9 @@ def import_raw_level(level):
     p = PushPosition(arr)
     return p, width, height
 
+def encode(x, y, direction):
+    return direction + x*4 + y*4*constants.SIZE
+
         
 def onehot(length, ind):
     out = np.zeros((length))
@@ -620,5 +633,6 @@ def initialize_model(numlayers, learning_rate):
                   loss = [tensorflow.keras.losses.categorical_crossentropy,
                           tensorflow.keras.losses.MSE])
                           #tensorflow.keras.losses.binary_crossentropy])
+    return model
     
     #model.fit(inputData,[outputYLeft, outputYRight], epochs=..., batch_size=...)
