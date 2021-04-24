@@ -27,6 +27,9 @@ class Node:
         if self.is_win:
             self.parent.backprop(0, most_recent_action)
             return
+        if len(self.pos.get_legal_move_numbers()) == 0:
+            self.parent.backprop(constants.MAX_STEPS, most_recent_action)
+            return
         model_result = self.model.predict(np.expand_dims(self.pos.arr, axis=0))
         self.p = model_result[0][0]
         self.v = model_result[1][0][0]
@@ -48,6 +51,9 @@ class Node:
         #a is the next action
         if a not in self.children.keys():
             print('bad')
+            print(self.is_win)
+            print(self.pos.moves)
+            print(self.children.keys())
         self.q[a] = (self.q[a]*self.visit_counts[a] + estimated_total)/(self.visit_counts[a] + 1)
         self.visit_counts[a] = self.visit_counts[a] + 1
         if self.parent is not None:
@@ -67,14 +73,14 @@ class Node:
 
 def simulate(current_node, model):
     while current_node.expanded:
-        if current_node.is_win:
+        if current_node.is_win or len(current_node.children) == 0:
             most_recent_action = utils.encode(current_node.pos.moves[-1][0],
                                               current_node.pos.moves[-1][1],
                                               current_node.pos.moves[-1][2])
             current_node.parent.backprop(0, most_recent_action)
             return
         if len(current_node.children) == 0:
-            current_node.backprop(constants.MAX_STEPS, 0)
+            current_node.parent.backprop(constants.MAX_STEPS, most_recent_action)
             return
         tot_visits = current_node.visit_counts.sum()
         action_goodness = current_node.q +\
@@ -109,5 +115,5 @@ def mcts(model, position_orig, max_visits, training_data):
             #print('MCTS won!')
             return 1
             break
-        #print('took an action {0}'.format(current_node.pos.steps))
+        print('took an action {0}'.format(current_node.pos.steps))
     return 0

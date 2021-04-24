@@ -24,7 +24,7 @@ winrate_threshold = .8
 for proportion in np.linspace(.00, 1.0, 21):
     while True:
         print(f'Made it to {proportion}')
-        num_curriculum_levels = 100
+        num_curriculum_levels = 30
         successes = 0
         for i in range(num_curriculum_levels):
             curriculum_pos = utils.make_curriculum_pos(start_pos, proportion)
@@ -37,7 +37,7 @@ for proportion in np.linspace(.00, 1.0, 21):
             #if success:
             #    for tup in range(3):
             #        training_data[tup] += new_training_data[tup]
-        training_data = training_data[-100000:]
+        training_data = training_data[-10000:]
         print(successes/num_curriculum_levels)
         if successes/num_curriculum_levels > winrate_threshold:
             break

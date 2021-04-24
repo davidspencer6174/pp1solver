@@ -8,7 +8,7 @@ def train_model(model, training_data):
       MCTS],
      [number of steps remaining before solving])'''
     batch_size = 32
-    epochs = 100
+    epochs = 5
     model.fit(np.array(training_data[0]),
               [np.array(training_data[1]),
                np.array(training_data[2])],
