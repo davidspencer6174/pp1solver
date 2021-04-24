@@ -14,24 +14,26 @@ import mcts
 level_path = constants.RAWPATH
 level_name = 'Sandstorm'
 start_pos = utils.import_raw_level(level_name)[0]
-training_data = []
+training_data = ([], [], [])
 
 model = utils.initialize_model(6, .001)
-num_playouts = 1600
+#num_playouts = 1600
+num_playouts = 40
 winrate_threshold = .8
 
-for proportion in np.linspace(.05, 1.0, 20):
+for proportion in np.linspace(.00, 1.0, 21):
     while True:
         print(f'Made it to {proportion}')
-        num_curriculum_levels = 1000
+        num_curriculum_levels = 100
         successes = 0
         for i in range(num_curriculum_levels):
             curriculum_pos = utils.make_curriculum_pos(start_pos, proportion)
-            success, new_training_data = mcts.mcts(model,
-                                                   curriculum_pos,
-                                                   num_playouts,
-                                                   training_data)
+            success = mcts.mcts(model,
+                                curriculum_pos,
+                                num_playouts,
+                                training_data)
             successes += success
+            print(success)
             #if success:
             #    for tup in range(3):
             #        training_data[tup] += new_training_data[tup]

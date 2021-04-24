@@ -192,15 +192,15 @@ class PushPosition:
         direction = move%4
         return self.make_move(x, y, direction)
     
-    def get_legal_move_numbers(self, move):
+    def get_legal_move_numbers(self):
         """Gets a numpy array of legal move
         numbers"""
-        test = np.nonzero(self.arr[:,:,6:10].flatten())
-        for move in test:
+        out = np.nonzero(self.arr[:,:,6:10].flatten())[0]
+        for move in out:
             copy_pos = PushPosition(copy.deepcopy(self.arr))
             assert copy_pos.make_move_number(move) != constants.ILLEGAL
             
-        return np.nonzero(self.arr[:,:,6:10].flatten())
+        return out
 
     def step_in_direction(self, direction):
         """
@@ -539,7 +539,7 @@ def import_raw_level(level):
     return p, width, height
 
 def encode(x, y, direction):
-    return direction + x*4 + y*4*constants.SIZE
+    return direction + y*4 + x*4*constants.SIZE
 
         
 def onehot(length, ind):
@@ -594,6 +594,7 @@ def make_curriculum_pos(position, proportion):
                       np.random.binomial(1,
                                          proportion,
                                          size = (constants.SIZE, constants.SIZE)))
+    new_arr[:,:,4] += position.arr[:,:,1] - new_arr[:,:,1]
     return PushPosition(new_arr)
 
 
