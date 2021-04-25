@@ -13,7 +13,9 @@ class Node:
         self.pos = pos
         self.children = dict()
         self.visit_counts = np.zeros(4*constants.SIZE*constants.SIZE)
-        self.q = np.zeros(4*constants.SIZE*constants.SIZE)
+        self.q = np.zeros(4*constants.SIZE*constants.SIZE)#*.3*constants.MAX_STEPS
+        #if self.parent is not None:
+        #    self.q += self.parent.v*constants.MAX_STEPS
         self.model = model
         self.is_win = is_win
         self.p = None
@@ -28,7 +30,8 @@ class Node:
                                               self.pos.moves[-1][1],
                                               self.pos.moves[-1][2])
         if self.is_win:
-            self.parent.backprop(0, most_recent_action)
+            self.parent.backprop(min(self.pos.steps, constants.MAX_STEPS),
+                                 most_recent_action)
             return
         if len(self.pos.get_legal_move_numbers()) == 0:
             self.parent.backprop(constants.MAX_STEPS, most_recent_action)
@@ -36,6 +39,7 @@ class Node:
         model_result = self.model.predict(np.expand_dims(self.pos.arr, axis=0))
         self.p = model_result[0][0]
         self.v = model_result[1][0][0]
+        #self.q += self.v*constants.MAX_STEPS
         for move in self.pos.get_legal_move_numbers():
             new_pos = utils.PushPosition(copy.deepcopy(self.pos.arr))
             new_pos.steps = self.pos.steps
@@ -46,7 +50,8 @@ class Node:
                                        self.model,
                                        result == constants.WIN)
         if self.parent is not None:
-            self.parent.backprop(self.v*constants.MAX_STEPS,
+            self.parent.backprop(min(self.v*constants.MAX_STEPS + self.pos.steps,
+                                     constants.MAX_STEPS),
                                  most_recent_action)
         return
     
@@ -57,13 +62,13 @@ class Node:
             print(self.is_win)
             print(self.pos.moves)
             print(self.children.keys())
-        self.q[a] = (self.q[a]*self.visit_counts[a] - estimated_total)/(self.visit_counts[a] + 1)
+        self.q[a] = (self.q[a]*self.visit_counts[a] + constants.MAX_STEPS - estimated_total)/(self.visit_counts[a] + 1)
         self.visit_counts[a] = self.visit_counts[a] + 1
         if self.parent is not None:
             most_recent_action = utils.encode(self.pos.moves[-1][0],
                                               self.pos.moves[-1][1],
                                               self.pos.moves[-1][2])
-            self.parent.backprop(self.pos.steps + estimated_total,
+            self.parent.backprop(estimated_total,
                                  most_recent_action)
     
     def add_to_train_data(self, training_data, total_steps_required):
@@ -76,11 +81,16 @@ class Node:
 
 def simulate(current_node, model):
     while current_node.expanded:
-        if current_node.is_win or len(current_node.children) == 0:
+        most_recent_action = None
+        if len(current_node.pos.moves) > 0:
             most_recent_action = utils.encode(current_node.pos.moves[-1][0],
                                               current_node.pos.moves[-1][1],
                                               current_node.pos.moves[-1][2])
-            current_node.parent.backprop(0, most_recent_action)
+        if current_node.is_win:
+            #current_node.parent.backprop(0, most_recent_action)
+            current_node.parent.backprop(min(current_node.pos.steps,
+                                             constants.MAX_STEPS),
+                                         most_recent_action)
             return
         if len(current_node.children) == 0:
             current_node.parent.backprop(constants.MAX_STEPS, most_recent_action)

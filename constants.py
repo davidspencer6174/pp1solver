@@ -31,9 +31,12 @@ TEST_LEVELS = ["K2xlgames", "Crazystylie", "LongWayHome", "Tetris",
 #are insufficient
 EXPECTED_SHIFTS_CHOSEN = .5
 
-MAX_STEPS = 70
+LR = .001
 
-CPUT = 1.4142135
+MAX_STEPS = 200
+
+#CPUT = 1.4142135
+CPUT = 3
 
 ILLEGAL = -1
 NORMAL = 1

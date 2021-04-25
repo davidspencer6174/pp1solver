@@ -618,7 +618,7 @@ def load_model(netname):
     model.load_weights(weights)
     return model
 
-def initialize_model(numlayers, learning_rate):
+def initialize_model(numlayers):
     num_classes = 4*constants.SIZE*constants.SIZE   
     
     inp = Input((constants.SIZE,
@@ -630,7 +630,7 @@ def initialize_model(numlayers, learning_rate):
     out1 = Dense(num_classes, activation='softmax')(x)
     out2 = Dense(1, activation='tanh')(x)
     model = Model(inp, [out1, out2])
-    model.compile(optimizer = tensorflow.keras.optimizers.Adam(learning_rate=learning_rate),
+    model.compile(optimizer = tensorflow.keras.optimizers.Adam(learning_rate=constants.LR),
                   loss = [tensorflow.keras.losses.categorical_crossentropy,
                           tensorflow.keras.losses.MSE])
                           #tensorflow.keras.losses.binary_crossentropy])
