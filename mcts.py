@@ -2,6 +2,9 @@ import constants
 import copy
 import utils
 import numpy as np
+import gc
+import tensorflow.keras
+
 
 class Node:
     
@@ -43,7 +46,7 @@ class Node:
                                        self.model,
                                        result == constants.WIN)
         if self.parent is not None:
-            self.parent.backprop(self.v,
+            self.parent.backprop(self.v*constants.MAX_STEPS,
                                  most_recent_action)
         return
     
@@ -54,7 +57,7 @@ class Node:
             print(self.is_win)
             print(self.pos.moves)
             print(self.children.keys())
-        self.q[a] = (self.q[a]*self.visit_counts[a] + estimated_total)/(self.visit_counts[a] + 1)
+        self.q[a] = (self.q[a]*self.visit_counts[a] - estimated_total)/(self.visit_counts[a] + 1)
         self.visit_counts[a] = self.visit_counts[a] + 1
         if self.parent is not None:
             most_recent_action = utils.encode(self.pos.moves[-1][0],
@@ -83,7 +86,7 @@ def simulate(current_node, model):
             current_node.parent.backprop(constants.MAX_STEPS, most_recent_action)
             return
         tot_visits = current_node.visit_counts.sum()
-        action_goodness = current_node.q +\
+        action_goodness = current_node.q/constants.MAX_STEPS +\
                           constants.CPUT*(np.sqrt(1+tot_visits))/\
                           (1+current_node.visit_counts)*current_node.p
         best_action = None
@@ -105,8 +108,11 @@ def mcts(model, position_orig, max_visits, training_data):
            current_node.pos.arr[:,:,6:10].sum() != 0):
         while current_node.visit_counts.sum() < max_visits:
             simulate(current_node, model)
+        gc.collect()
+        tensorflow.keras.backend.clear_session()
         best_action = np.argmax(current_node.visit_counts)
         #print(current_node.visit_counts[best_action])
+        most_visited = current_node.visit_counts[best_action]
         #print(current_node.children)
         current_node = current_node.children[best_action]
         if current_node.is_win:
@@ -115,5 +121,6 @@ def mcts(model, position_orig, max_visits, training_data):
             #print('MCTS won!')
             return 1
             break
-        print('took an action {0}'.format(current_node.pos.steps))
+        print('took an action {0}, max visits {1}'.format(
+              current_node.pos.steps, most_visited))
     return 0
