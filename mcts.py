@@ -108,19 +108,19 @@ def mcts(model, position_orig, max_visits, training_data):
            current_node.pos.arr[:,:,6:10].sum() != 0):
         while current_node.visit_counts.sum() < max_visits:
             simulate(current_node, model)
-        gc.collect()
-        tensorflow.keras.backend.clear_session()
+        #gc.collect()
+        #tensorflow.keras.backend.clear_session()
         best_action = np.argmax(current_node.visit_counts)
         #print(current_node.visit_counts[best_action])
         most_visited = current_node.visit_counts[best_action]
         #print(current_node.children)
         current_node = current_node.children[best_action]
+        print('took an action {0}, max visits {1}'.format(
+              current_node.pos.steps, most_visited))
         if current_node.is_win:
             current_node.parent.add_to_train_data(training_data,
                                            current_node.pos.steps)
             #print('MCTS won!')
             return 1
             break
-        print('took an action {0}, max visits {1}'.format(
-              current_node.pos.steps, most_visited))
     return 0
