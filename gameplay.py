@@ -21,6 +21,7 @@
 import utils as utils
 import tensorflow as tf
 from tensorflow.keras.models import model_from_json
+import constants
 
 import numpy as np
 
@@ -119,17 +120,17 @@ screen = pg.display.set_mode(scr_size)
 
 clock = pg.time.Clock()
 
-using_net = True
+using_net = False
 
 prediction = None
 if using_net:
     netname = "deep_moveinfo"
     #netname = "deep_noinfo"
-    model = utils.get_model(netname)
+    #model = utils.get_model(netname)
     query = np.zeros((1, 20, 20, 12))
     query[0,:,:,:] = copy.deepcopy(p.arr)
     utils.position_transform(query[0,:,:,:])
-    prediction = model.predict(query)[0]
+    #prediction = model.predict(query)[0]
 while not done:
     clock.tick(50)
     for event in pg.event.get():
@@ -139,16 +140,16 @@ while not done:
             
             # Moves
             if event.key == pg.K_UP:
-                if p.step_in_direction(0):
+                if p.make_move_number(0) != constants.ILLEGAL:
                     steps.append(0)
             if event.key == pg.K_RIGHT:
-                if p.step_in_direction(1):
+                if p.make_move_number(1) != constants.ILLEGAL:
                     steps.append(1)
             if event.key == pg.K_DOWN:
-                if p.step_in_direction(2):
+                if p.make_move_number(2) != constants.ILLEGAL:
                     steps.append(2)
             if event.key == pg.K_LEFT:
-                if p.step_in_direction(3):
+                if p.make_move_number(3) != constants.ILLEGAL:
                     steps.append(3)
                 
             if event.key == pg.K_r:  # R to restart
@@ -164,10 +165,11 @@ while not done:
                 f2 = open(outpath+level_name, "wb")
                 pickle.dump(comprehensive_arr, f2)
                 f2.close()
-            query = np.zeros((1, 20, 20, 12))
-            query[0,:,:,:] = copy.deepcopy(p.arr)
-            utils.position_transform(query[0,:,:,:])
-            prediction = model.predict(query)[0]
+            #query = np.zeros((1, 20, 20, 12))
+            #query[0,:,:,:] = copy.deepcopy(p.arr)
+            #utils.position_transform(query[0,:,:,:])
+            #prediction = model.predict(query)[0]
+    #draw(width, height, p, steps, prediction, using_net)
     draw(width, height, p, steps, prediction, using_net)
     
 pg.quit()
