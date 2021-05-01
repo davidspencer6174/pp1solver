@@ -24,7 +24,7 @@ proportions = {lvl: .00 for lvl in level_names}
 training_data = ([], [], [])
 
 model = None
-load_existing = True
+load_existing = False
 if load_existing:
     json_file = open("networks/latest.json", "r")
     loaded_model_json = json_file.read()
@@ -39,7 +39,7 @@ if load_existing:
 else:
     model = utils.initialize_model(11)
 #num_playouts = 1600
-num_playouts = 512
+num_playouts = 128
 winrate_threshold = .8
 poses_to_save = 50000
 overall_iter = 0

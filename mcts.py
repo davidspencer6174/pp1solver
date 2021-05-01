@@ -9,12 +9,13 @@ import predictionbatcher
 
 class Node:
     
-    def __init__(self, parent, moves, model, pred_batcher,
+    def __init__(self, parent, moves, model, pred_batcher, transposition_table,
                  proximity_bonus = False, is_win = False):
         self.parent = parent
         self.still_updating = True
         self.moves = moves
         self.children = dict()
+        self.transposition_table = transposition_table
         num_classes = 4
         self.visit_counts = np.zeros(num_classes)
         self.q = np.zeros(num_classes)
@@ -34,6 +35,11 @@ class Node:
     def expand(self, pos):
         for move in self.moves:
             res = pos.make_move_number(move)
+        pos_hash = pos.get_hash()
+        #if pos_hash in self.transposition_table:
+        #    other_node = self.transposition_table[pos_hash]
+        #    move_diff = len(self.moves) - len(other_node.moves)
+        self.transposition_table[pos.get_hash()] = self
         self.expanded = True
         most_recent_action = None
         if self.parent is not None:
@@ -58,11 +64,6 @@ class Node:
     def expand_result_callback(self, p, v):
         self.p = p
         self.v = v
-        #if self.proximity_bonus:
-        #    self.v += abs(self.pos.char_loc[0] - self.pos.exit_loc[0])/3
-        #    self.v += abs(self.pos.char_loc[1] - self.pos.exit_loc[1])/3
-        #    self.v -= 5
-        #self.q += self.v*constants.MAX_STEPS
         for move in self.legal_moves:
             new_moves = copy.deepcopy(self.moves) + [move]
             result = self.move_results[move]
@@ -70,6 +71,7 @@ class Node:
                                        new_moves,
                                        self.model,
                                        self.pred_batcher,
+                                       self.transposition_table,
                                        proximity_bonus = self.proximity_bonus,
                                        is_win = (result == constants.WIN))
         if self.parent is not None:
@@ -85,7 +87,7 @@ class Node:
         if a not in self.children.keys():
             print('bad')
             print(self.is_win)
-            print(self.pos.moves)
+            print(self.moves)
             print(a)
             print(self.children.keys())
             #print(self.pos.visited_since_push)
@@ -169,7 +171,9 @@ def mcts_multipos(model, positions, num_visits, training_data, overall_iter):
     done = np.zeros(len(positions))
     succeeded = np.zeros(len(positions))
     for pos in positions:
-        current_nodes.append(Node(None, [], model, pred_batcher, proximity_bonus))
+        current_nodes.append(Node(None, [], model, pred_batcher,
+                                  dict(),
+                                  proximity_bonus))
         orig_nodes.append(current_nodes[-1])
     while done.min() == 0:        
         it = 0
